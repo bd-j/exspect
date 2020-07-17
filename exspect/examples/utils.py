@@ -105,6 +105,9 @@ def get_lsf(spec, miles_fwhm_aa=2.54, zred=0.0, **extras):
     """This method takes a spec file and returns the quadrature difference
     between the instrumental dispersion and the MILES dispersion, in km/s, as a
     function of wavelength
+
+    :param spec: structured ndarray
+        An SDSS spectral data array, with keys 'loglam' and 'wdisp'
     """
     lightspeed = 2.998e5  # km/s
     # Get the SDSS instrumental resolution for this plate/mjd/fiber
@@ -148,7 +151,7 @@ def set_sdss_lsf(ssp, zred=0.0, sdss_filename='', **extras):
     """
     sdss_spec, _, _ = load_sdss(sdss_filename)
     wave, delta_v = get_lsf(sdss_spec, zred=zred, **extras)
-    ssp.libraries[1] == 'miles', "Please change FSPS to the MILES libraries."
+    assert ssp.libraries[1].decode("utf-8") == 'miles', "Please change FSPS to the MILES libraries."
     ssp.params['smooth_lsf'] = True
     ssp.set_lsf(wave, delta_v)
 
