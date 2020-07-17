@@ -129,7 +129,7 @@ if __name__ == "__main__":
         # --- get samples ---
         sps = reader.get_sps(result)
         sample_kwargs = {"nsample": int(1e4), "start": 0.2,
-                        "weights": result["weights"]}
+                         "weights": result["weights"]}
         thetas, fluxes = posterior_sed(result["chain"], model, obs, sps, sample_kwargs=sample_kwargs)
         twave, tspec = truespec(obs, model, sps, R=500 * 2.35, nufnu=True)
 
@@ -155,6 +155,7 @@ if __name__ == "__main__":
                        ndraw=6, draw_kwargs=draw_kwargs,
                        post_kwargs=post_kwargs)
 
+        # --- prettify ---
         rax.axhline(0.0, linestyle=":", color="k")
         xmin, xmax = np.min(twave), np.max(twave)
         ymin, ymax = tspec.min()*0.9, tspec.max()/0.9
@@ -165,18 +166,15 @@ if __name__ == "__main__":
         rax.set_ylim(-2.5, 2.5)
         rax.xaxis.set_major_locator(MaxNLocator(5, prune="lower"))
         sax.set_xticklabels([])
-        sax.set_ylabel("$\\nu \, f_\\nu \, (erg/s/cm^2)$")
-        rax.set_ylabel("$\\chi$")
-        rax.set_xlabel("$\\lambda \, (\AA)$")
-
+        sax.set_ylabel(r"$\\nu \, f_\\nu \, (erg/s/cm^2)$")
+        rax.set_ylabel(r"$\\chi$")
+        rax.set_xlabel(r"$\\lambda \, (\AA)$")
 
         data = Line2D([], [], **data_kwargs)
         draws = Line2D([], [], **draw_kwargs)
-
 
         artists += [data, draws]
         legends += ["Mock Data", "Posterior Draws"]
 
     cfig.legend(artists, legends, (0.77, 0.43), frameon=True)
-    cfig.suptitle(tag)
     cfig.savefig("paperfigures/fig{}.{}".format(args.fignum, args.ext), dpi=400)
