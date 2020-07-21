@@ -80,16 +80,10 @@ def build_model(zmean=-1, zdisp=None, zmax=20, nbins_sfh=6,
     # adjust number of bins for SFH
     model_params = adjust_continuity_agebins(model_params, nbins=nbins_sfh)
     model_params["zmax"] = dict(N=1, isfree=False, init=zmax)
+    model_params["nbins_sfh"] = dict(N=1, isfree=False, init=nbins_sfh)
 
     # add redshift scaling to agebins, such that there is one 0-10 Myr bin and the
     # rest are evenly spaced in log(age) up to the age of the universe at that redshift
-    def zred_to_agebins(zred=model_params["zred"]["init"], agebins=None, zmax=20.0, **extras):
-        tuniv = cosmo.age(zred).value*1e9
-        tbinmax = tuniv-cosmo.age(zmax).value*1e9
-        agelims = np.append(np.array([0.0, 7.0]), np.linspace(7.0, np.log10(tbinmax), int(nbins_sfh))[1:])
-        agebins = np.array([agelims[:-1], agelims[1:]])
-        return agebins.T
-
     model_params["agebins"]["depends_on"] = zred_to_agebins
 
 
@@ -139,6 +133,18 @@ def build_model(zmean=-1, zdisp=None, zmax=20, nbins_sfh=6,
         model_params.update(TemplateLibrary["dust_emission"])
 
     return sedmodel.SpecModel(model_params)
+
+
+def zred_to_agebins(zred=None, nbins_sfh=5, zmax=20.0, **extras):
+    """Construct `nbins_sfh` bins in lookback time from 0 to age(zmax).  The
+    first bin goes from 0-10 Myr, the rest are evenly spaced in log time
+    """
+    tuniv = cosmo.age(zred).value*1e9
+    tbinmax = tuniv-cosmo.age(zmax).value*1e9
+    agelims = np.append(np.array([0.0, 7.0]), np.linspace(7.0, np.log10(tbinmax), int(nbins_sfh))[1:])
+    agebins = np.array([agelims[:-1], agelims[1:]])
+    return agebins.T
+
 
 # -----------------
 # Noise Model

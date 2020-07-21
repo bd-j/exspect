@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-""" ---- Parametric Spectrum fit -----
-This is a parameter file for fitting spectra only (no photometry) with a
+""" ---- Parametric Spectrum and Photometry fit --------
+This is a parameter file for fitting spectra and photometry with a
 single composite stellar population (tau-model)
-We also optionally remove the continuum shape by optimizing out a polynomial
-at each model call, if continuum is False
- -------------------------------------
+We remove the spectral continuum shape by optimizing out a polynomial
+at each model call, if use_continuum is False
+#xxxOtherwise we fit for a calibration vector (which we can do because we have
+#independent information about the calibration shape from the photometry)xxx
+# -------------------------------------
 """
 
 import time, sys
@@ -28,7 +30,8 @@ from .utils import fit_continuum, eline_mask
 
 
 def build_model(uniform_priors=False, add_neb=True, add_duste=True,
-                continuum_optimize=False, mask_elines=False,
+                free_neb_met=False, free_duste=False, zred_disp=0,
+                snr_spec=0, continuum_optimize=False,
                 **kwargs):
     """Instantiate and return a ProspectorParams model subclass.
 
@@ -38,18 +41,26 @@ def build_model(uniform_priors=False, add_neb=True, add_duste=True,
     """
     from prospect.models.templates import TemplateLibrary, describe
     from prospect.models import priors, sedmodel
+    has_spectrum = np.any(snr_spec > 0)
 
-    # --- Basic parameteric SFH with nebular & dust emission ---
+    # --- Basic parameteric SFH ---
     model_params = TemplateLibrary["parametric_sfh"]
+
+    # --- Nebular & dust emission ---
     if add_neb:
         model_params.update(TemplateLibrary["nebular"])
         model_params["gas_logu"]["isfree"] = True
-        if (not mask_elines):
+        if free_neb_met:
             # Fit for independent gas metallicity
             model_params["gas_logz"]["isfree"] = True
             _ = model_params["gas_logz"].pop("depends_on")
-    if add_duste:
+    if add_duste | free_duste:
         model_params.update(TemplateLibrary["dust_emission"])
+        if free_duste:
+            # could also adjust priors here
+            model_params["duste_qpah"]["isfree"] = True
+            model_params["duste_umin"]["isfree"] = True
+            model_params["duste_alpha"]["isfree"] = True
 
     # --- Complexify dust attenuation ---
     # Switch to Kriek and Conroy 2013
@@ -57,19 +68,21 @@ def build_model(uniform_priors=False, add_neb=True, add_duste=True,
     # Slope of the attenuation curve, expressed as the index of the power-law
     # that modifies the base Kriek & Conroy/Calzetti shape.
     # I.e. a value of zero is basically calzetti with a 2175AA bump
-    model_params["dust_index"]  = {"N": 1, "isfree": False, "init": 0.0}
+    model_params["dust_index"]  = dict(N=1, isfree=False, init=0.0)
     # young star dust
-    model_params["dust1"]       = {"N": 1, "isfree": False, "init": 0.0}
-    model_params["dust1_index"] = {"N": 1, "isfree": False, "init": -1.0}
-    model_params["dust_tesc"]   = {"N": 1, "isfree": False, "init": 7.0}
+    model_params["dust1"]       = dict(N=1, isfree=False, init=0.0)
+    model_params["dust1_index"] = dict(N=1, isfree=False, init=-1.0)
+    model_params["dust_tesc"]   = dict(N=1, isfree=False, init=7.0)
 
     # --- Add smoothing parameters ---
-    model_params.update(TemplateLibrary["spectral_smoothing"])
-    model_params["sigma_smooth"]["prior"] = priors.TopHat(mini=150, maxi=250)
-    # --- Add spectral fitting parameters ---
-    if continuum_optimize:
-        model_params.update(TemplateLibrary["optimize_speccal"])
-        model_params["polyorder"]["init"] = 12
+    if has_spectrum:
+        model_params.update(TemplateLibrary["spectral_smoothing"])
+        model_params["sigma_smooth"]["prior"] = priors.TopHat(mini=150, maxi=250)
+        # --- Add spectroscopic calibration ---
+        if continuum_optimize:
+            model_params.update(TemplateLibrary["optimize_speccal"])
+            # Could change the polynomial order here
+            model_params["polyorder"]["init"] = 12
 
     # Alter parameter values based on keyword arguments
     for p in list(model_params.keys()):
@@ -77,25 +90,21 @@ def build_model(uniform_priors=False, add_neb=True, add_duste=True,
             model_params[p]["init"] = kwargs[p]
 
     # Now set redshift free and adjust prior
-    model_params['zred']["isfree"] = True
-    z = model_params['zred']["init"]
-    v = np.array([-100., 100.])  # lower and upper limits of residual velocity offset, km/s
-    zlo, zhi = (1 + v/3e5) * (1 + z) - 1.0
-    model_params['zred']['prior'] = priors.TopHat(mini=zlo, maxi=zhi)
+    if zred_disp > 0:
+        model_params['zred']["isfree"] = True
+        z = np.copy(model_params['zred']["init"])
+        model_params['zred']['prior'] = priors.Normal(mean=z, sigma=zred_disp)
 
     # Alter some priors?
-    minit = model_params["mass"]["init"]
     if uniform_priors:
+        minit = model_params["mass"]["init"]
         model_params["tau"]["prior"] = priors.TopHat(mini=0.1, maxi=10)
-        model_params["mass"]["prior"] = priors.TopHat(mini=minit/3., maxi=minit*3)
-    else:
-        model_params["mass"]["prior"].params["maxi"] = minit * 10
-        model_params["mass"]["prior"].params["mini"] = minit / 10
+        model_params["mass"]["prior"] = priors.TopHat(mini=minit/10., maxi=minit*10)
 
-    model_params["logzsol"]["prior"] = priors.TopHat(mini=-1, maxi=0.2)
+    model_params["logzsol"]["prior"] = priors.TopHat(mini=-1.5, maxi=0.2)
     model_params["tage"]["prior"] = priors.TopHat(mini=0.1, maxi=13.8)
 
-    if continuum_optimize:
+    if has_spectrum & continuum_optimize:
         return sedmodel.PolySpecModel(model_params)
     else:
         return sedmodel.SpecModel(model_params)
@@ -108,29 +117,35 @@ def build_model(uniform_priors=False, add_neb=True, add_duste=True,
 def build_sps(zcontinuous=1, compute_vega_mags=False, add_realism=False, **extras):
     """Load the SPS object.  If add_realism is True, set up to convolve the
     library spectra to an sdss resolution
-
-    :param add_realism:
-        If set this reads an SDSS spectroscopic data file and convolves the
-        SSPs by the relevant (restframe) kernel to match the observed frame
-        instrumental line-spread function.
     """
     from prospect.sources import CSPSpecBasis
     sps = CSPSpecBasis(zcontinuous=zcontinuous,
                        compute_vega_mags=compute_vega_mags)
-
     if add_realism:
         set_sdss_lsf(sps.ssp, **extras)
 
     return sps
 
+
 # --------------
 # OBS
 # --------------
 
+# Here we are going to put together some filter names
+# All these filters are available in sedpy.  If you want to use other filters,
+# add their transmission profiles to sedpy/sedpy/data/filters/ with appropriate
+# names (and format)
+galex = ['galex_FUV', 'galex_NUV']
+sdss = ['sdss_{0}0'.format(b) for b in 'ugriz']
+twomass = ['twomass_{}'.format(b) for b in ['J', 'H', 'Ks']]
+wise = ['wise_w{}'.format(b) for b in '1234']
+
 
 def build_obs(dlambda_spec=2.0, wave_lo=3800, wave_hi=7000.,
-              snr_spec=10.0, add_noise=False, seed=101, add_realism=False,
-              mask_elines=False, continuum_optimize=False, **kwargs):
+              filterset=galex+sdss+twomass,
+              snr_spec=10., snr_phot=20., add_noise=False, seed=101,
+              add_realism=False, mask_elines=False,
+              continuum_optimize=True, **kwargs):
     """Load a mock
 
     :param wave_lo:
@@ -142,8 +157,16 @@ def build_obs(dlambda_spec=2.0, wave_lo=3800, wave_hi=7000.,
     :param dlambda_spec:
         The (restframe) wavelength sampling or spacing of the spectrum.
 
+    :param filterset:
+        A list of `sedpy` filter names.  Mock photometry will be generated
+        for these filters.
+
     :param snr_spec:
         S/N ratio for the spectroscopy per pixel.  scalar.
+
+    :param snr_phot:
+        The S/N of the phock photometry.  This can also be a vector of same
+        lngth as the number of filters, for heteroscedastic noise.
 
     :param add_noise: (optional, boolean, default: True)
         Whether to add a noise reealization to the spectroscopy.
@@ -162,16 +185,23 @@ def build_obs(dlambda_spec=2.0, wave_lo=3800, wave_hi=7000.,
     # --- Make the Mock ----
     # In this demo we'll make a mock.  But we need to know which wavelengths
     # and filters to mock up.
-    a = 1 + kwargs.get("zred", 0.0)
-    wavelength = np.arange(wave_lo, wave_hi, dlambda_spec) * a
+    has_spectrum = snr_spec > 0
+    if has_spectrum:
+        a = 1 + kwargs.get("zred", 0.0)
+        wavelength = np.arange(wave_lo, wave_hi, dlambda_spec) * a
+    else:
+        wavelength = None
+
+    if snr_phot < 0:
+        filterset = None
 
     # We need the models to make a mock.
     sps = build_sps(add_realism=add_realism, **kwargs)
     model = build_model(conintuum_optimize=continuum_optimize,
                         mask_elines=mask_elines, **kwargs)
 
-    # Make uncertainties realistic ?
-    if add_realism:
+    # Make spec uncertainties realistic ?
+    if has_spectrum & add_realism:
         # This uses an actual SDSS spectrum to get a realistic S/N curve,
         # renormalized to have median S/N given by the snr_spec parameter
         sdss_spec, _, _ = load_sdss(**kwargs)
@@ -180,11 +210,12 @@ def build_obs(dlambda_spec=2.0, wave_lo=3800, wave_hi=7000.,
         snr_vec = np.interp(wavelength, 10**sdss_spec['loglam'][good], snr_profile[good])
         snr_spec = snr_spec * snr_vec / np.median(snr_vec)
 
-    mock = build_mock(sps, model, wavelength=wavelength, snr_spec=snr_spec,
+    mock = build_mock(sps, model, filterset=filterset, snr_phot=snr_phot,
+                      wavelength=wavelength, snr_spec=snr_spec,
                       add_noise=add_noise, seed=seed)
 
     # continuum normalize ?
-    if continuum_optimize:
+    if has_spectrum & continuum_optimize:
         # This fits a low order polynomial to the spectrum and then divides by
         # that to get a continuum normalized spectrum.
         cont, _ = fit_continuum(mock["wavelength"], mock["spectrum"], normorder=6, nreject=3)
@@ -193,9 +224,9 @@ def build_obs(dlambda_spec=2.0, wave_lo=3800, wave_hi=7000.,
         mock["unc"] /= cont
         mock["continuum"] = cont
 
-    # Masking
-    mock['mask'] = np.ones(len(mock['wavelength']), dtype=bool)
-    if mask_elines:
+    # Spectroscopic Masking
+    if has_spectrum & mask_elines:
+        mock['mask'] = np.ones(len(mock['wavelength']), dtype=bool)
         a = (1 + model.params['zred'])  # redshift the mask
         lines = np.array([3729, 3799.0, 3836.5, 3870., 3890.2, 3970, 4072.0,  # misc
                           4103., 4341.7, 4862.7, 4960.3, 5008.2,  #hgamma + hdelta + hbeta + oiii
@@ -205,18 +236,18 @@ def build_obs(dlambda_spec=2.0, wave_lo=3800, wave_hi=7000.,
 
     return mock
 
-
 # -----------------
 # Noise Model
 # ------------------
 
+
 def build_noise(**extras):
     return None, None
-
 
 # -----------
 # Everything
 # ------------
+
 
 def build_all(**kwargs):
 
@@ -231,6 +262,8 @@ if __name__ == "__main__":
     # - Add custom arguments -
     parser.add_argument('--zred', type=float, default=0.1,
                         help="Redshift for the model (and mock).")
+    parser.add_argument('--zred_disp', type=float, default=1e-3,
+                        help="Redshift for the model (and mock).")
 
     # Fitted Model specification
     parser.add_argument('--add_neb', action="store_true",
@@ -239,29 +272,37 @@ if __name__ == "__main__":
                         help="If set, dust emission in the model (and mock).")
     parser.add_argument('--uniform_priors', action="store_true",
                         help="If set, use uniform priors for tau and mass.")
-    parser.add_argument('--add_realism', action="store_true",
-                        help="If set, Add realistic noise and instrumental dispersion.")
-    parser.add_argument('--sdss_filename', type=str, default="",
-                        help="Full path to the SDSS spectral data file for"
-                        " adding realism.")
+    parser.add_argument("--free_neb_met", action="store_true",
+                        help="If set, allow nebular metallicity != stellar metallicity")
+    parser.add_argument("--free_duste", action="store_true",
+                        help="If set, let dust DL07 dust emission parameters vary")
 
     # Mock data construction
+    parser.add_argument('--snr_spec', type=float, default=0,
+                        help="S/N ratio for the mock spectroscopy.")
+    parser.add_argument('--snr_phot', type=float, default=20,
+                        help="S/N ratio for the mock photometry.")
+    parser.add_argument('--filterset', type=str, nargs="*",
+                        default=galex + sdss + twomass,
+                        help="Names of filters through which to produce photometry.")
+    parser.add_argument('--add_noise', action="store_true",
+                        help="If set, noise up the mock.")
+    parser.add_argument('--seed', type=int, default=101,
+                        help=("RNG seed for the noise. Negative values result"
+                              "in random noise."))
+    # Mock spectrum parameters
     parser.add_argument('--wave_lo', type=float, default=3800.,
                         help="Minimum (restframe) wavelength for the mock spectrum")
     parser.add_argument('--wave_hi', type=float, default=7200.,
                         help="Minimum (restframe) wavelength for the mock spectrum")
     parser.add_argument('--dlambda_spec', type=float, default=2.0,
                         help="Minimum (restframe) wavelength for the mock spectrum")
+    parser.add_argument('--add_realism', action="store_true",
+                        help="If set, Add realistic noise and instrumental dispersion.")
+    parser.add_argument('--sdss_filename', type=str, default="",
+                        help="Full path to the SDSS spectral data file for adding realism.")
     parser.add_argument('--mask_elines', action="store_true",
                         help="If set, mask windows around bright emission lines")
-    parser.add_argument('--snr', type=float, default=20,
-                        help="S/N ratio for the mock spectroscopy.")
-    parser.add_argument('--add_noise', action="store_true",
-                        help="If set, noise up the mock.")
-    parser.add_argument('--seed', type=int, default=101,
-                        help=("RNG seed for the noise. Negative values result"
-                              "in random noise."))
-
     parser.add_argument('--continuum_optimize', action="store_true",
                         help="If set, optimize out the continuum shape.")
 
@@ -283,8 +324,8 @@ if __name__ == "__main__":
     run_params = vars(args)
     obs, model, sps, noise = build_all(**run_params)
 
-    run_params["sps_libraries"] = sps.ssp.libraries
     run_params["param_file"] = __file__
+    run_params["sps_libraries"] = sps.ssp.libraries
 
     print(model)
 

@@ -180,3 +180,8 @@ def fit_continuum(wave, spec, normorder=6, nreject=1):
         good = good & ((1 - normed) < normed[good].std())
 
     return cal, lastgood
+
+
+#------------
+# Helpful transforms
+# ------------------

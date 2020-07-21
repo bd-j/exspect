@@ -20,8 +20,8 @@ import matplotlib.pyplot as pl
 from prospect.io import read_results as reader
 
 from exspect.utils import get_truths, sample_prior
-from exspect.cornerplot import allcorner, scatter, marginal, get_spans
-from exspect.sedplot import show_sed, posterior_sed, truespec
+from exspect.plotting.cornerplot import allcorner, scatter, marginal, get_spans
+from exspect.plotting.sedplot import show_sed, posterior_sed, truespec
 
 
 def convert(chain, labels):
