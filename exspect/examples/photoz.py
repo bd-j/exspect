@@ -183,7 +183,7 @@ if __name__ == "__main__":
                         help="If set, allow for the IGM attenuation to vary")
     parser.add_argument('--complex_dust', action="store_true",
                         help="If set, let attenuation curve slope and young star dust vary")
-    parser.add_argument('--zmax', type=float, default=20.,
+    parser.add_argument('--zmax', type=float, default=40.,
                         help="Maximum redshift for SF to occur")
     parser.add_argument('--zmean', type=float, default=-1,
                         help="mean of redshift prior; use uniform prior if negative")
