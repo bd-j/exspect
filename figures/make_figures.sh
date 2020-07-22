@@ -2,6 +2,6 @@
 
 # Make figures for prospector paper
 
-python phot_mock_basic.py --fignum 1
-python specphot_mock_compare --fignum 2
-python gnz11.py --fignum 4
+python basic_phot_mock.py --fignum 1
+python compare_mock_specphot --fignum 2
+python show_gnz11.py --fignum 11 --make_seds

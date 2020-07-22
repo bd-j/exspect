@@ -40,7 +40,6 @@ parser.add_argument('--zred', type=float, default=0.1,
                     help="Redshift for the model (and mock).")
 parser.add_argument('--zred_disp', type=float, default=1e-3,
                     help="Redshift for the model (and mock).")
-
 # Fitted Model specification
 parser.add_argument('--add_neb', action="store_true",
                     help="If set, add nebular emission in the model (and mock).")
@@ -52,7 +51,6 @@ parser.add_argument("--free_neb_met", action="store_true",
                     help="If set, allow nebular metallicity != stellar metallicity")
 parser.add_argument("--free_duste", action="store_true",
                     help="If set, let dust DL07 dust emission parameters vary")
-
 # Mock data construction
 parser.add_argument('--snr_spec', type=float, default=0,
                     help="S/N ratio for the mock spectroscopy.")
@@ -81,7 +79,6 @@ parser.add_argument('--mask_elines', action="store_true",
                     help="If set, mask windows around bright emission lines")
 parser.add_argument('--continuum_optimize', action="store_true",
                     help="If set, optimize out the continuum shape.")
-
 # Mock physical parameters
 parser.add_argument('--tage', type=float, default=12.,
                     help="Age of the mock, Gyr.")
@@ -249,14 +246,14 @@ def build_obs(dlambda_spec=2.0, wave_lo=3800, wave_hi=7000.,
     # --- Make the Mock ----
     # In this demo we'll make a mock.  But we need to know which wavelengths
     # and filters to mock up.
-    has_spectrum = snr_spec > 0
+    has_spectrum = np.any(snr_spec > 0)
     if has_spectrum:
         a = 1 + kwargs.get("zred", 0.0)
         wavelength = np.arange(wave_lo, wave_hi, dlambda_spec) * a
     else:
         wavelength = None
 
-    if snr_phot < 0:
+    if np.all(snr_phot <= 0):
         filterset = None
 
     # We need the models to make a mock.

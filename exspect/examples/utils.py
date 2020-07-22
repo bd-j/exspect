@@ -11,6 +11,8 @@ __all__ = ["build_mock", "get_lsf",
            "load_sdss", "set_sdss_lsf",
            "eline_mask", "fit_continuum"]
 
+lightspeed = 2.998e5  # km/s
+
 
 def build_mock(sps, model,
                filterset=None,
@@ -101,19 +103,17 @@ def build_mock(sps, model,
 # Helper Functions
 # ------------------
 
-def get_lsf(spec, miles_fwhm_aa=2.54, zred=0.0, **extras):
+def get_lsf(wave_obs, sigma_v, miles_fwhm_aa=2.54, zred=0.0, **extras):
     """This method takes a spec file and returns the quadrature difference
     between the instrumental dispersion and the MILES dispersion, in km/s, as a
     function of wavelength
 
-    :param spec: structured ndarray
-        An SDSS spectral data array, with keys 'loglam' and 'wdisp'
+    :param wave_obs: ndarray
+        observed frame wavelength
+
+    :param sigma_v: ndarray
+        spectral resolution in terms of velocity dispersion
     """
-    lightspeed = 2.998e5  # km/s
-    # Get the SDSS instrumental resolution for this plate/mjd/fiber
-    wave_obs = 10**spec['loglam']  # observed frame wavelength
-    # This is the instrumental velocity resolution in the observed frame
-    sigma_v = np.log(10) * lightspeed * 1e-4 * spec['wdisp']
     # filter out some places where sdss reports zero dispersion
     good = sigma_v > 0
     wave_obs, sigma_v = wave_obs[good], sigma_v[good]
@@ -150,20 +150,54 @@ def set_sdss_lsf(ssp, zred=0.0, sdss_filename='', **extras):
     a decent approximation as long as redshift does not change much.
     """
     sdss_spec, _, _ = load_sdss(sdss_filename)
-    wave, delta_v = get_lsf(sdss_spec, zred=zred, **extras)
+    wave_obs = 10**sdss_spec['loglam']  # observed frame wavelength
+    # instrumental resolution as velocity dispersion
+    sigma_v = np.log(10) * lightspeed * 1e-4 * sdss_spec['wdisp']
+    wave, delta_v = get_lsf(wave_obs, sigma_v, zred=zred, **extras)
     assert ssp.libraries[1].decode("utf-8") == 'miles', "Please change FSPS to the MILES libraries."
     ssp.params['smooth_lsf'] = True
     ssp.set_lsf(wave, delta_v)
 
 
-def eline_mask(wave, lines, pad):
+def set_ggc_lsf(ssp, zred=0.0, wave_lo=3500, wave_hi=7500, **extras):
+    """Method to make the SSPs have the same (rest-frame) resolution as the
+    GGC data.  This is only correct if the redshift is fixed, but is
+    a decent approximation as long as redshift does not change much.
+    """
+    wave_obs = np.arange(wave_lo, wave_hi, 1.0)
+    fwhm = ggc_lsf(wave_obs)  # angstroms
+    sigma_v = lightspeed * fwhm / 2.355 / wave_obs  # km/s
+    wave, delta_v = get_lsf(wave_obs, sigma_v, zred=zred, **extras)
+    ssp.libraries[1] == 'miles', "Please change FSPS to the MILES libraries."
+    ssp.params['smooth_lsf'] = True
+    ssp.set_lsf(wave, delta_v)
+
+
+def ggc_lsf(wave):
+    """Line spread function of the GGC spectroscopy from Schiavon.
+
+    :param wave:
+        Observed frame wavelengths in angstroms
+
+    :returns disp:
+        The FWHM at each wavelength given by wave.
+    """
+    coeffs = np.array([15.290, -6.079e-3, 9.472e-7, -4.395e-11])
+    powers = np.arange(len(coeffs))
+    fwhm = np.dot(coeffs, wave[None, :] ** powers[:, None])
+    return fwhm
+
+
+def eline_mask(wave, lines, pad=None):
     """A little method to apply emission line masks based on wavelength
     intervals like used in Starlight.
     """
     isline = np.zeros(len(wave), dtype=bool)
     for w in lines:
-        lo, hi = w-pad, w+pad
-        #print(lo, hi)
+        try:
+            lo, hi = w
+        except(TypeError):
+            lo, hi = w-pad, w+pad
         isline = isline | ((wave > lo) & (wave < hi))
 
     return ~isline

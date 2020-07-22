@@ -4,6 +4,8 @@
 import numpy as np
 import matplotlib.pyplot as pl
 from .corner import _quantile
+from prospect.models.priors import TopHat
+
 
 pretty = {"logzsol": r"$\log (Z_{\star}/Z_{\odot})$",
           "logmass": r"$\log M_{\star, formed}$",
@@ -39,7 +41,7 @@ def sample_prior(model, nsample=1e6):
     #chain = []
     for l in labels:
         prior = model.config_dict[l]["prior"]
-        if isinstance(prior, priors.TopHat):
+        if isinstance(prior, TopHat):
             val = np.linspace(prior.params["mini"], prior.params["maxi"], nsample)
             val = np.atleast_2d(val).T
         else:
