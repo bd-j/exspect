@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-""" ---- Photomteric redshift: GNz-11 --------
+""" photoz.py - Photomteric redshift fitting
 Fit for redshift using only photometry of GNz-11
-# -------------------------------------
 """
 
 import time, sys
@@ -16,6 +15,30 @@ from prospect.io import write_results as writer
 from prospect.sources.constants import cosmo
 
 from sedpy.observate import load_filters
+
+
+# - Parser with default arguments -
+parser = prospect_args.get_parser(["optimize", "dynesty"])
+# - Add custom arguments -
+# Fitted Model specification
+parser.add_argument('--nbins_sfh', type=int, default=5,
+                    help="Number of bins in the SFH")
+parser.add_argument('--add_neb', action="store_true",
+                    help="If set, add nebular emission in the model (and mock).")
+parser.add_argument('--add_duste', action="store_true",
+                    help="If set, dust emission in the model (and mock).")
+parser.add_argument('--free_neb_met', action="store_true",
+                    help="If set, use a nebular metallicity untied to the stellar Z")
+parser.add_argument('--free_igm', action="store_true",
+                    help="If set, allow for the IGM attenuation to vary")
+parser.add_argument('--complex_dust', action="store_true",
+                    help="If set, let attenuation curve slope and young star dust vary")
+parser.add_argument('--zmax', type=float, default=40.,
+                    help="Maximum redshift for SF to occur")
+parser.add_argument('--zmean', type=float, default=-1,
+                    help="mean of redshift prior; use uniform prior if negative")
+parser.add_argument('--zdisp', type=float, default=1.,
+                    help="dispersion of redshift prior")
 
 
 # --------------
@@ -167,29 +190,6 @@ def build_all(**kwargs):
 
 if __name__ == "__main__":
 
-    # - Parser with default arguments -
-    parser = prospect_args.get_parser(["optimize", "dynesty"])
-    # - Add custom arguments -
-    # Fitted Model specification
-    parser.add_argument('--nbins_sfh', type=int, default=5,
-                        help="Number of bins in the SFH")
-    parser.add_argument('--add_neb', action="store_true",
-                        help="If set, add nebular emission in the model (and mock).")
-    parser.add_argument('--add_duste', action="store_true",
-                        help="If set, dust emission in the model (and mock).")
-    parser.add_argument('--free_neb_met', action="store_true",
-                        help="If set, use a nebular metallicity untied to the stellar Z")
-    parser.add_argument('--free_igm', action="store_true",
-                        help="If set, allow for the IGM attenuation to vary")
-    parser.add_argument('--complex_dust', action="store_true",
-                        help="If set, let attenuation curve slope and young star dust vary")
-    parser.add_argument('--zmax', type=float, default=40.,
-                        help="Maximum redshift for SF to occur")
-    parser.add_argument('--zmean', type=float, default=-1,
-                        help="mean of redshift prior; use uniform prior if negative")
-    parser.add_argument('--zdisp', type=float, default=1.,
-                        help="dispersion of redshift prior")
-
     args = parser.parse_args()
     run_params = vars(args)
     obs, model, sps, noise = build_all(**run_params)
@@ -211,6 +211,7 @@ if __name__ == "__main__":
     print("writing to {}".format(hfile))
     writer.write_hdf5(hfile, run_params, model, obs,
                       output["sampling"][0], output["optimization"][0],
+                      sps=sps,
                       tsample=output["sampling"][1],
                       toptimize=output["optimization"][1])
 

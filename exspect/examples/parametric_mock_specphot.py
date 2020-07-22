@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-""" ---- Parametric Spectrum and Photometry fit --------
-This is a parameter file for fitting spectra and photometry with a
-single composite stellar population (tau-model)
-We remove the spectral continuum shape by optimizing out a polynomial
-at each model call, if use_continuum is False
-#xxxOtherwise we fit for a calibration vector (which we can do because we have
-#independent information about the calibration shape from the photometry)xxx
+""" parametric_mock_specphot.py -  Parametric Spectrum and Photometry fit
+This is a parameter file with build_* methods for fitting spectra and photometry
+with a single composite stellar population (tau-model.) We optionally include
+spectrum or photometry, and can remove the spectral continuum shape by
+optimizing out a polynomial at each model call, if use_continuum is False
 # -------------------------------------
 """
 
@@ -23,6 +21,81 @@ from prospect.io import write_results as writer
 from .utils import build_mock
 from .utils import set_sdss_lsf, load_sdss
 from .utils import fit_continuum, eline_mask
+
+
+# Here we are going to put together some filter names
+# All these filters are available in sedpy.  If you want to use other filters,
+# add their transmission profiles to sedpy/sedpy/data/filters/ with appropriate
+# names (and format)
+galex = ['galex_FUV', 'galex_NUV']
+sdss = ['sdss_{0}0'.format(b) for b in 'ugriz']
+twomass = ['twomass_{}'.format(b) for b in ['J', 'H', 'Ks']]
+wise = ['wise_w{}'.format(b) for b in '1234']
+
+
+# - Parser with default arguments -
+parser = prospect_args.get_parser(["optimize", "dynesty"])
+# - Add custom arguments -
+parser.add_argument('--zred', type=float, default=0.1,
+                    help="Redshift for the model (and mock).")
+parser.add_argument('--zred_disp', type=float, default=1e-3,
+                    help="Redshift for the model (and mock).")
+
+# Fitted Model specification
+parser.add_argument('--add_neb', action="store_true",
+                    help="If set, add nebular emission in the model (and mock).")
+parser.add_argument('--add_duste', action="store_true",
+                    help="If set, dust emission in the model (and mock).")
+parser.add_argument('--uniform_priors', action="store_true",
+                    help="If set, use uniform priors for tau and mass.")
+parser.add_argument("--free_neb_met", action="store_true",
+                    help="If set, allow nebular metallicity != stellar metallicity")
+parser.add_argument("--free_duste", action="store_true",
+                    help="If set, let dust DL07 dust emission parameters vary")
+
+# Mock data construction
+parser.add_argument('--snr_spec', type=float, default=0,
+                    help="S/N ratio for the mock spectroscopy.")
+parser.add_argument('--snr_phot', type=float, default=20,
+                    help="S/N ratio for the mock photometry.")
+parser.add_argument('--filterset', type=str, nargs="*",
+                    default=galex + sdss + twomass,
+                    help="Names of filters through which to produce photometry.")
+parser.add_argument('--add_noise', action="store_true",
+                    help="If set, noise up the mock.")
+parser.add_argument('--seed', type=int, default=101,
+                    help=("RNG seed for the noise. Negative values result"
+                          "in random noise."))
+# Mock spectrum parameters
+parser.add_argument('--wave_lo', type=float, default=3800.,
+                    help="Minimum (restframe) wavelength for the mock spectrum")
+parser.add_argument('--wave_hi', type=float, default=7200.,
+                    help="Minimum (restframe) wavelength for the mock spectrum")
+parser.add_argument('--dlambda_spec', type=float, default=2.0,
+                    help="Minimum (restframe) wavelength for the mock spectrum")
+parser.add_argument('--add_realism', action="store_true",
+                    help="If set, Add realistic noise and instrumental dispersion.")
+parser.add_argument('--sdss_filename', type=str, default="",
+                    help="Full path to the SDSS spectral data file for adding realism.")
+parser.add_argument('--mask_elines', action="store_true",
+                    help="If set, mask windows around bright emission lines")
+parser.add_argument('--continuum_optimize', action="store_true",
+                    help="If set, optimize out the continuum shape.")
+
+# Mock physical parameters
+parser.add_argument('--tage', type=float, default=12.,
+                    help="Age of the mock, Gyr.")
+parser.add_argument('--tau', type=float, default=3.,
+                    help="SFH timescale parameter of the mock, Gyr.")
+parser.add_argument('--dust2', type=float, default=0.3,
+                    help="Dust attenuation V band optical depth")
+parser.add_argument('--logzsol', type=float, default=-0.5,
+                    help="Metallicity of the mock; log(Z/Z_sun)")
+parser.add_argument('--mass', type=float, default=1e10,
+                    help="Stellar mass of the mock; solar masses formed")
+parser.add_argument('--sigma_smooth', type=float, default=200.,
+                    help="Velocity dispersion, km/s")
+
 
 # --------------
 # MODEL SETUP
@@ -130,15 +203,6 @@ def build_sps(zcontinuous=1, compute_vega_mags=False, add_realism=False, **extra
 # --------------
 # OBS
 # --------------
-
-# Here we are going to put together some filter names
-# All these filters are available in sedpy.  If you want to use other filters,
-# add their transmission profiles to sedpy/sedpy/data/filters/ with appropriate
-# names (and format)
-galex = ['galex_FUV', 'galex_NUV']
-sdss = ['sdss_{0}0'.format(b) for b in 'ugriz']
-twomass = ['twomass_{}'.format(b) for b in ['J', 'H', 'Ks']]
-wise = ['wise_w{}'.format(b) for b in '1234']
 
 
 def build_obs(dlambda_spec=2.0, wave_lo=3800, wave_hi=7000.,
@@ -256,69 +320,6 @@ def build_all(**kwargs):
 
 
 if __name__ == "__main__":
-
-    # - Parser with default arguments -
-    parser = prospect_args.get_parser(["optimize", "dynesty"])
-    # - Add custom arguments -
-    parser.add_argument('--zred', type=float, default=0.1,
-                        help="Redshift for the model (and mock).")
-    parser.add_argument('--zred_disp', type=float, default=1e-3,
-                        help="Redshift for the model (and mock).")
-
-    # Fitted Model specification
-    parser.add_argument('--add_neb', action="store_true",
-                        help="If set, add nebular emission in the model (and mock).")
-    parser.add_argument('--add_duste', action="store_true",
-                        help="If set, dust emission in the model (and mock).")
-    parser.add_argument('--uniform_priors', action="store_true",
-                        help="If set, use uniform priors for tau and mass.")
-    parser.add_argument("--free_neb_met", action="store_true",
-                        help="If set, allow nebular metallicity != stellar metallicity")
-    parser.add_argument("--free_duste", action="store_true",
-                        help="If set, let dust DL07 dust emission parameters vary")
-
-    # Mock data construction
-    parser.add_argument('--snr_spec', type=float, default=0,
-                        help="S/N ratio for the mock spectroscopy.")
-    parser.add_argument('--snr_phot', type=float, default=20,
-                        help="S/N ratio for the mock photometry.")
-    parser.add_argument('--filterset', type=str, nargs="*",
-                        default=galex + sdss + twomass,
-                        help="Names of filters through which to produce photometry.")
-    parser.add_argument('--add_noise', action="store_true",
-                        help="If set, noise up the mock.")
-    parser.add_argument('--seed', type=int, default=101,
-                        help=("RNG seed for the noise. Negative values result"
-                              "in random noise."))
-    # Mock spectrum parameters
-    parser.add_argument('--wave_lo', type=float, default=3800.,
-                        help="Minimum (restframe) wavelength for the mock spectrum")
-    parser.add_argument('--wave_hi', type=float, default=7200.,
-                        help="Minimum (restframe) wavelength for the mock spectrum")
-    parser.add_argument('--dlambda_spec', type=float, default=2.0,
-                        help="Minimum (restframe) wavelength for the mock spectrum")
-    parser.add_argument('--add_realism', action="store_true",
-                        help="If set, Add realistic noise and instrumental dispersion.")
-    parser.add_argument('--sdss_filename', type=str, default="",
-                        help="Full path to the SDSS spectral data file for adding realism.")
-    parser.add_argument('--mask_elines', action="store_true",
-                        help="If set, mask windows around bright emission lines")
-    parser.add_argument('--continuum_optimize', action="store_true",
-                        help="If set, optimize out the continuum shape.")
-
-    # Mock physical parameters
-    parser.add_argument('--tage', type=float, default=12.,
-                        help="Age of the mock, Gyr.")
-    parser.add_argument('--tau', type=float, default=3.,
-                        help="SFH timescale parameter of the mock, Gyr.")
-    parser.add_argument('--dust2', type=float, default=0.3,
-                        help="Dust attenuation V band optical depth")
-    parser.add_argument('--logzsol', type=float, default=-0.5,
-                        help="Metallicity of the mock; log(Z/Z_sun)")
-    parser.add_argument('--mass', type=float, default=1e10,
-                        help="Stellar mass of the mock; solar masses formed")
-    parser.add_argument('--sigma_smooth', type=float, default=200.,
-                        help="Velocity dispersion, km/s")
 
     args = parser.parse_args()
     run_params = vars(args)
