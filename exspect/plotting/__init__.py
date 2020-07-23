@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# colorcycle = ["slateblue", "maroon", "orange"]
+colorcycle = ["royalblue", "firebrick", "indigo", "darkorange", "seagreen"]
+
 
 def plot_defaults(rcParams):
     rcParams["font.family"] = "serif"

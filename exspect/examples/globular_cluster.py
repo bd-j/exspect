@@ -51,6 +51,8 @@ parser.add_argument('--continuum_order', type=int, default=0,
 parser.add_argument('--outlier_model', action="store_true",
                     help="If set, mask windows around bright emission lines")
 # Data construction
+parser.add_argument('--ggc_data', type=str, default="data/ggc.h5",
+                    help="Full path of GGC data HDF5 file")
 parser.add_argument('--ggc_id', type=str, default="NGC104",
                     help="Name of the GGC object.")
 parser.add_argument('--ggc_index', type=int, default=-1,
@@ -123,7 +125,7 @@ def build_model(continuum_order=0, add_neb=False, zred=0., zred_disp=1e-3, **kwa
 # --------------
 
 
-def build_obs(ggc_id="NGC104", ggc_index=-1,
+def build_obs(ggc_data="data/ggc/ggc.h5", ggc_id="NGC104", ggc_index=-1,
               wave_lo=3800, wave_hi=7200., mask_elines=False, snr_spec=0,
               filterset=bessell, snr_phot=20., norm_band="bessell_B",
               continuum_optimize=False, **kwargs):
@@ -148,7 +150,7 @@ def build_obs(ggc_id="NGC104", ggc_index=-1,
     """
     import h5py
     from prospect.utils.obsutils import fix_obs
-    with h5py.File("data/ggc/ggc.h5", "r") as hfile:
+    with h5py.File(ggc_data, "r") as hfile:
         if ggc_index >= 0:
             ggc_id = list(hfile.keys())[ggc_index]
         group = hfile[ggc_id]

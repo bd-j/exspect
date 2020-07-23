@@ -10,8 +10,8 @@ from prospect.io import read_results as reader
 from prospect.io.write_results import chain_to_struct
 from prospect.sources.constants import cosmo
 
-from exspect.plotting import plot_defaults
-from exspect.plotting.utils import sample_prior, sample_posterior, violinplot, step #, pretty
+from exspect.plotting import plot_defaults, colorcycle
+from exspect.plotting.utils import sample_prior, sample_posterior, violinplot, step  #, pretty
 from exspect.plotting.corner import marginal, allcorner, _quantile
 from exspect.plotting.sfhplot import ratios_to_sfrs
 
@@ -34,7 +34,7 @@ def sfh_quantiles(time, bins, sfrs, q=[16, 50, 84]):
     return qq
 
 
-def get_prior(prior, ax, num=500):
+def get_simple_prior(prior, ax, num=500):
     xx = np.linspace(*ax.get_xlim(), num=1000)
     px = np.array([prior(x) for x in xx])
     px = np.exp(px)
@@ -62,7 +62,8 @@ if __name__ == "__main__":
     sfh_samples = np.array([ratios_to_sfrs(s["logmass"], s["logsfr_ratios"], agebins=a)
                             for s, a in zip(samples, agebins)])
 
-    #prior_samples, names = sample_prior(model, nsample=int(1e4))
+    # for complex transforms, use prior samples
+    #prior_samples, names = sample_prior(model, nsample=int(1e6))
     #priors = chain_to_struct(prior_samples, model=model)
 
     if args.n_seds > 0:
@@ -79,7 +80,7 @@ if __name__ == "__main__":
 
     show = ["logzsol", "dust2", "logmass", "gas_logu", "dust_index", "igm_factor"]
 
-    # --- set up axes ---
+    # --- Set up axes & styles ---
     rcParams = plot_defaults(rcParams)
     fig = pl.figure(figsize=(8.5, 10.5))
     from matplotlib.gridspec import GridSpec
@@ -87,11 +88,11 @@ if __name__ == "__main__":
                   height_ratios=[3, 1, 1.25, 3, 1.25, 2, 1.25, 3],
                   left=0.1, right=0.98, wspace=0.15, hspace=0.03, top=0.95, bottom=0.1)
 
-    pkwargs = dict(color="royalblue", alpha=0.8)
+    pkwargs = dict(color=colorcycle[0], alpha=0.8)
     zkwargs = pkwargs
-    skwargs = dict(color="firebrick", alpha=0.8)
-    tkwargs = dict(color="darkorange", linestyle="--", linewidth=0.75)
-    rkwargs = dict(color="indigo", linestyle=":", linewidth=2)
+    skwargs = dict(color=colorcycle[1], alpha=0.8)
+    tkwargs = dict(color=colorcycle[3], linestyle="--", linewidth=0.75)
+    rkwargs = dict(color=colorcycle[4], linestyle=":", linewidth=2)
     hkwargs = pkwargs
 
     # --- plot SED and SED posteriors ---
@@ -142,7 +143,7 @@ if __name__ == "__main__":
         #marginal(np.squeeze(priors[p]), weights=None, ax=pax,
         #         span=pax.get_xlim(), peak=pax.get_ylim()[1],
         #         histtype="step", **rkwargs)
-        xx, px = get_prior(model.config_dict[p]["prior"], pax)
+        xx, px = get_simple_prior(model.config_dict[p]["prior"], pax)
         pax.plot(xx, px * pax.get_ylim()[1] * 0.96, **rkwargs)
         pax.set_xlabel(pretty.get(p, p))
         paxes.append(pax)

@@ -17,11 +17,13 @@ import numpy as np
 import matplotlib.pyplot as pl
 
 from prospect.io import read_results as reader
+from prospect.io.write_results import chain_to_struct
+from prospect.plotting.utils import get_truths
 
-from cornerplot import allcorner, marginal, scatter, get_spans, corner, prettify_axes
-from sedplot import truespec
-from utils import setup, sample_prior, get_truths
-
+from exspect.plotting.corner import allcorner, marginal, scatter, get_spans, corner, prettify_axes
+#from sedplot import truespec
+from exspect.plotting.utils import sample_prior
+from exspect.plotting import plot_defaults, colorcycle
 
 def convert(chain, labels):
     dust = 1.086 * chain[..., labels.index("dust2")]
@@ -104,45 +106,36 @@ if __name__ == "__main__":
 
     import matplotlib
     fmtr = matplotlib.ticker.ScalarFormatter()
+    from matplotlib.lines import Line2D
+    from matplotlib.patches import Patch
+    from matplotlib import rcParams
+    from matplotlib.gridspec import GridSpec
 
     # --- Read-in ---
     tag = "tau4_tage12_noiseTrue_nebFalse_maskFalse_normTrue_snr20"
     v = -1
-    pfile = args.phot_file
-    sfile = args.spec_file
-    spfile = args.specphot_file
-
-    # read in all the data
-    files = [pfile, sfile, spfile]
-    ftype = ["maggies", "spectrum", "spectrum"]
-    marker = ['o', None, None]
+    files = [args.phot_file, args.spec_file, args.specphot_file]
 
     results, obs, models, sps = setup(files, sps=-1)
     data = [o[f] for (o, f) in zip(obs, ftype)]
 
-    # --- Formatting ---
-    from matplotlib import rcParams
-    rcParams['xtick.direction'] = 'in'
-    rcParams['ytick.direction'] = 'in'
-    rcParams['axes.grid'] = False
-
-    colorcycle = ["slateblue", "maroon", "orange"]
+    # --- Axes & Styles ---
+    rcParams = plot_defaults(rcParams)
+    #fig = pl.figure()
+    #gs = GridSpec(4, 4)
 
     label_kwargs = {"fontsize": 14}
     tick_kwargs = {"labelsize": 12}
 
-    prior_kwargs = {"color": "g", "linestyle": ":", "linewidth": 2}
+    prior_kwargs = {"color": colorcycle[4], "linestyle": ":", "linewidth": 2}
     hist_kwargs = {"alpha": 0.5, "histtype": "stepfilled"}
-    draw_kwargs =  {"color": "r", "linewidth": 1.0, "alpha": 0.5}
     truth_kwargs = {"color": "k", "marker": "o"}
-    sed_kwargs =   {"color": 'k', "linewidth": 1, "alpha":1.0}
-    data_kwargs =  {"color": "tomato", "linestyle": "-", "markeredgewidth": 2}
+    sed_kwargs = {"color": 'k', "linewidth": 1, "alpha":1.0}
+    data_kwargs =  {"color": colorcycle[3], "linestyle": "-", "markeredgewidth": 2}
 
     # --- Legend stuff ---
     rtypes = ["Only Photometry", "Only Spectroscopy", "Photometry & Spectroscopy"]
 
-    from matplotlib.lines import Line2D
-    from matplotlib.patches import Patch
     patches = [Patch(color=c, alpha=hist_kwargs["alpha"]) for c in colorcycle]
     dot = Line2D([], [], linestyle="", **truth_kwargs)
     prior = Line2D([], [], **prior_kwargs)
