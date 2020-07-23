@@ -125,7 +125,7 @@ def build_model(continuum_order=0, add_neb=False, zred=0., zred_disp=1e-3, **kwa
 
 def build_obs(ggc_id="NGC104", ggc_index=-1,
               wave_lo=3800, wave_hi=7200., mask_elines=False, snr_spec=0,
-              filterset=bessell, snr_phot=20.,
+              filterset=bessell, snr_phot=20., norm_band="bessell_B",
               continuum_optimize=False, **kwargs):
     """Load a ggc dataset
 
