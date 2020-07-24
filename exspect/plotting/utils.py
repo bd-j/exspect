@@ -14,19 +14,6 @@ pretty = {"logzsol": r"$\log (Z_{\star}/Z_{\odot})$",
           "dust_index": r"$\Gamma_{\rm dust}$"}
 
 
-def step(xlo, xhi, y=None, ylo=None, yhi=None, ax=None,
-         label=None, linewidth=2, **kwargs):
-    """A custom method for plotting step functions as a set of horizontal lines
-    """
-    clabel = label
-    for i, (l, h) in enumerate(zip(xlo, xhi)):
-        if y is not None:
-            ax.plot([l,h],[y[i],y[i]], label=clabel, linewidth=linewidth, **kwargs)
-        if ylo is not None:
-            ax.fill_between([l,h], [ylo[i], ylo[i]], [yhi[i], yhi[i]], linewidth=0, **kwargs)
-        clabel = None
-
-
 def sample_prior(model, nsample=1e6):
     """Generate samples from the prior.
 
@@ -121,3 +108,17 @@ def violinplot(data, pos, widths, ax=None,
     for i, pc in enumerate(parts['bodies']):
         pc.set_facecolor(color[i])
         pc.set_alpha(alpha)
+
+
+def step(xlo, xhi, y=None, ylo=None, yhi=None, ax=None,
+         label=None, linewidth=2, **kwargs):
+    """A custom method for plotting step functions as a set of horizontal lines
+    """
+    clabel = label
+    for i, (l, h) in enumerate(zip(xlo, xhi)):
+        if y is not None:
+            ax.plot([l,h],[y[i],y[i]], label=clabel, linewidth=linewidth, **kwargs)
+        if ylo is not None:
+            ax.fill_between([l,h], [ylo[i], ylo[i]], [yhi[i], yhi[i]], linewidth=0, **kwargs)
+        clabel = None
+

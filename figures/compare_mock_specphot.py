@@ -18,12 +18,13 @@ import matplotlib.pyplot as pl
 
 from prospect.io import read_results as reader
 from prospect.io.write_results import chain_to_struct
-from prospect.plotting.utils import get_truths
+from prospect.utils.plotting import get_truths
 
 from exspect.plotting.corner import allcorner, marginal, scatter, get_spans, corner, prettify_axes
 #from sedplot import truespec
 from exspect.plotting.utils import sample_prior
 from exspect.plotting import plot_defaults, colorcycle
+
 
 def convert(chain, labels):
     dust = 1.086 * chain[..., labels.index("dust2")]
@@ -102,6 +103,7 @@ if __name__ == "__main__":
     parser.add_argument("--phot_file", type=str, default="")
     parser.add_argument("--spec_file", type=str, default="")
     parser.add_argument("--specphot_file", type=str, default="")
+    parser.add_argument("--n_seds", type=int, default=0)
     args = parser.parse_args()
 
     import matplotlib
