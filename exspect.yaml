@@ -1,0 +1,27 @@
+name: prox
+dependencies:
+  # infrastructure
+  - pep8
+  - pylint
+  - pycodestyle
+  - ipython
+  # scientific computing
+  - numpy
+  - scipy
+  - matplotlib
+  - h5py
+  # inference
+  - corner
+  - emcee
+  - dynesty
+  # astro
+  - astropy
+
+# --- via setup.py ---
+# sedpy
+# fsps
+# prospector
+# exspect
+
+# -- optional ---
+# mpi4py
