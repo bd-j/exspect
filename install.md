@@ -1,6 +1,8 @@
 # Installation on Cannon
 
-add to your `.bashrc`:
+## Setup
+
+Add to your `.bashrc` or just do before you run any code:
 
 ```sh
 export GROUP=conroy_lab
@@ -14,29 +16,46 @@ export SPS_HOME=$SCRATCH/$GROUP/$USER/fsps
 export F90FLAGS=-fPIC
 ```
 
-Build the environment:
+## Build the environment:
 
-```
+```sh
 cd $MYSCRATCH
 git clone git@github.com:bd-j/exspect.git
-git clone git@github.com:bd-j/sedpy.git
-git clone git@github.com:bd-j/prospector.git
 git clone git@github.com:cconroy20/fsps.git
 git clone git@github.com:dfm/python-fsps.git
+git clone git@github.com:bd-j/sedpy.git
+git clone git@github.com:bd-j/prospector.git
 
 cd exspect
-conda env create -f exspect.yml
+conda env create -f environment.yml
 source activate prox
 
 cd ../fsps/src
 make clean
 make all
 
-cd ../python-fsps
+cd ../../python-fsps
 python setup.py install
 
 cd ../sedpy
 python setup.py install
-cd
+
+cd ../prospector
+python setup.py install
+
+cd ../exspect
+git pull
+python setup.py install
 ```
 
+## Run code
+
+e.g.:
+
+```sh
+export GROUP=conroy_lab
+export SPS_HOME=$SCRATCH/$GROUP/$USER/fsps
+source activate prox
+cd fitting
+python nbands_demo.py --dynesty --outfile=../output/hello_world
+```

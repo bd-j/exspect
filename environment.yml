@@ -1,4 +1,6 @@
 name: prox
+channels:
+  - conda-forge
 dependencies:
   # infrastructure
   - pep8
