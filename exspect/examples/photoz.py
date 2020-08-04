@@ -143,7 +143,7 @@ def build_model(zmean=-1, zdisp=None, zmax=20, nbins_sfh=6,
     if free_igm:
         # Allow IGM transmission scaling to vary
         model_params["igm_factor"]['isfree'] = True
-        model_params["igm_factor"]["prior"] = priors.ClippedNormal(mean=1.0, sigma=0.1, mini=0.0, maxi=2.0)
+        model_params["igm_factor"]["prior"] = priors.ClippedNormal(mean=1.0, sigma=0.3, mini=0.0, maxi=2.0)
     if add_neb:
         model_params.update(TemplateLibrary["nebular"])
         model_params["gas_logu"]["isfree"] = True

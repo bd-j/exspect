@@ -35,7 +35,7 @@ def sfh_quantiles(time, bins, sfrs, q=[16, 50, 84]):
 
 
 def get_simple_prior(prior, ax, num=500):
-    xx = np.linspace(*ax.get_xlim(), num=1000)
+    xx = np.linspace(*ax.get_xlim(), num=num)
     px = np.array([prior(x) for x in xx])
     px = np.exp(px)
     return xx, px / px.max()

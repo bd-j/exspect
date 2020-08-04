@@ -5,7 +5,7 @@ import numpy as np
 from scipy.special import gamma, gammainc
 
 from prospect.sources.constants import cosmo
-
+from .utils import step
 
 __all__ = ["show_sfh", "params_to_sfh",
            "delay_tau", "delay_tau_cmf", "delay_tau_mwa", "delay_tau_ssfr",
@@ -29,8 +29,8 @@ def show_sfh(ages, sfrs=None, ax=None,
             step(ages[:, 0], ages[:, 1], ylo=qq[0,:], yhi=qq[2,:], ax=ax, **post_kwargs)
             step(ages[:, 0], ages[:, 1], qq[1,:], ax=ax, **post_kwargs)
         else:
-            _ = fill_between(ages, qq[0,:], qq[2,:], ax=ax, **post_kwargs)
-            ax.plot(ages, qq[1,:], **post_kwargs)
+            _ = fill_between(ages, qq[0, :], qq[2, :], ax=ax, **post_kwargs)
+            ax.plot(ages, qq[1, :], **post_kwargs)
 
     if ndraw > 0:
         if binned:

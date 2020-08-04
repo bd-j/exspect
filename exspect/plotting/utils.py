@@ -83,6 +83,30 @@ def sample_posterior(chain, weights=None, nsample=int(1e4),
         return flatchain[inds, :], extra[inds, ...]
 
 
+def convolve_spec(wave, flux, R, minw=1e3, maxw=5e4, nufnu=False):
+    """Convolve a spectrum for display
+
+    Parameters
+    ----------
+    wave : ndarray opf shape (nwave,)
+        observed frame wavelength,
+
+    flux : iterable or ndarray of shape (nspec, nwave)
+        A list or array of spectra
+    """
+    from prospect.utils.smoothing import smoothspec
+
+    dlnlam = 1.0 / R / 2
+    owave = np.exp(np.arange(np.log(minw), np.log(maxw), dlnlam))
+    fout = [smoothspec(wave, f, resolution=R, outwave=owave, smoothtype="R")
+            for f in flux]
+    fout = np.array(fout)
+    if nufnu:
+        conv = 3631e-23 * 3e18 / owave
+        fout *= conv
+    return owave, fout
+
+
 def violinplot(data, pos, widths, ax=None,
                violin_kwargs={"showextrema": False},
                color="slateblue", alpha=0.5, span=None, **extras):
