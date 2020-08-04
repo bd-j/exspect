@@ -59,7 +59,7 @@ def show_priors(model, diagonals, spans, smooth=0.1, nsample=int(1e4),
 if __name__ == "__main__":
 
     parser = ArgumentParser()
-    parser.add_argument("--fignum", type=int, default=1)
+    parser.add_argument("--fignum", type=int, default=-1)
     parser.add_argument("--figext", type=str, default="pdf")
     parser.add_argument("--phot_file", type=str, default="")
     parser.add_argument("--prior_samples", type=int, default=int(1e4))
@@ -102,7 +102,7 @@ if __name__ == "__main__":
     label_kwargs = {"fontsize": 14}
     tick_kwargs = {"labelsize": 12}
 
-    hkwargs = dict(alpha=0.5, histtype="stepfilled")
+    hkwargs = dict(alpha=0.5)
     pkwargs = dict(color=colorcycle[0], alpha=0.8)
     skwargs = dict(color=colorcycle[1], alpha=0.8)
     tkwargs = dict(color=colorcycle[3], linestyle="", marker="o", mec="k", linewidth=0.75)
@@ -134,7 +134,7 @@ if __name__ == "__main__":
     tvec = np.atleast_2d(np.squeeze(t)).T
     caxes = allcorner(xx, labels, caxes, weights=weights, span=spans,
                       color=colorcycle[0], hist_kwargs=hkwargs,
-                      psamples=tvec, samples_kwargs=tkwargs,
+                      psamples=tvec, samples_kwargs={"color": tkwargs["color"], "edgecolor":"k"},
                       label_kwargs=label_kwargs,
                       tick_kwargs=tick_kwargs, max_n_ticks=4)
 
@@ -192,6 +192,8 @@ if __name__ == "__main__":
         legends += ["Mock Data", "Posterior Draws"]
 
     #cfig.legend(artists, legends, (0.77, 0.43), frameon=True)
-    #cfig.savefig("paperfigures/fig{}.{}".format(args.fignum, args.ext), dpi=400)
-    pl.ion()
-    pl.show()
+    if args.fignum > 0:
+        cfig.savefig("paperfigures/fig{}.{}".format(args.fignum, args.ext), dpi=400)
+    else:
+        pl.ion()
+        pl.show()

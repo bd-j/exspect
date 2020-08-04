@@ -16,7 +16,7 @@ from prospect import prospect_args
 from prospect.fitting import fit_model
 from prospect.io import write_results as writer
 
-#from .utils import build_mock
+from .utils import build_mock
 
 # -------------
 # FILTERS
@@ -32,7 +32,7 @@ spire = ["herschel_spire_{}".format(b) for b in ["250", "250", "500"]]
 
 # Filter Sets
 filtersets = {"oneband": sdss[2:3],  # r
-              "twoband": sdss[1:3], # g, r
+              "twoband": sdss[1:3],  # g, r
               "optical": sdss,       # ugriz
               "opt_nir": sdss + twomass,
               "uv_opt": galex + sdss,
@@ -45,6 +45,8 @@ filtersets = {"oneband": sdss[2:3],  # r
 # - Parser with default arguments -
 parser = prospect_args.get_parser(["optimize", "dynesty"])
 # Fitted Model specification
+parser.add_argument('--parametric_sfh', action="store_true",
+                    help="If set, fit a delay-tau model")
 parser.add_argument('--nbins_sfh', type=int, default=6,
                     help="Number of bins in the SFH")
 parser.add_argument('--add_neb', action="store_true",
@@ -54,7 +56,7 @@ parser.add_argument('--add_duste', action="store_true",
 parser.add_argument('--free_neb_met', action="store_true",
                     help="If set, use a nebular metallicity untied to the stellar Z")
 parser.add_argument("--free_duste", action="store_true",
-                    help="If set, let dust DL07 dust emission parameters vary")
+                    help="If set, let dust DL07 dust emission parameters and the AGN parameters vary")
 parser.add_argument('--complex_dust', action="store_true",
                     help="If set, let attenuation curve slope and young star dust vary")
 # Mock data construction
@@ -76,10 +78,10 @@ parser.add_argument('--dust2', type=float, default=0.3,
                     help="Dust attenuation V band optical depth")
 parser.add_argument('--logzsol', type=float, default=-0.3,
                     help="Metallicity of the mock; log(Z/Z_sun)")
-#parser.add_argument('--tage', type=float, default=12.,
-#                    help="Age of the mock, Gyr.")
-#parser.add_argument('--tau', type=float, default=3.,
-#                    help="SFH timescale parameter of the mock, Gyr.")
+parser.add_argument('--tage', type=float, default=12.,
+                    help="Age of the mock, Gyr.")
+parser.add_argument('--tau', type=float, default=3.,
+                    help="SFH timescale parameter of the mock, Gyr.")
 parser.add_argument('--fagn', type=float, default=0.05,
                     help="Dust attenuation V band optical depth")
 parser.add_argument('--agn_tau', type=float, default=20,
@@ -97,7 +99,7 @@ parser.add_argument('--duste_qpah', type=float, default=1.,
 
 def build_model(add_neb=True, add_duste=True, complex_dust=True,
                 free_neb_met=False, free_duste=True,
-                nbins_sfh=10, tuniv=13.7, **kwargs):
+                parametric_sfh=False, nbins_sfh=10, tuniv=13.7, **kwargs):
     """Load the model object.
     """
 
@@ -106,10 +108,11 @@ def build_model(add_neb=True, add_duste=True, complex_dust=True,
     from prospect.models.transforms import dustratio_to_dust1
 
     # --- Basic + SFH ----
-    model_params = TemplateLibrary["ssp"]
-    _ = model_params.pop("tage")
-    model_params.update(TemplateLibrary["continuity_sfh"])
-    model_params = adjust_continuity_agebins(model_params, nbins=nbins_sfh, tuniv=tuniv)
+    if parametric_sfh:
+        model_params = TemplateLibrary["parametric_sfh"]
+    else:
+        model_params = TemplateLibrary["continuity_sfh"]
+        model_params = adjust_continuity_agebins(model_params, nbins=nbins_sfh, tuniv=tuniv)
 
     # --- Nebular & dust emission ---
     if add_neb:
@@ -163,10 +166,12 @@ def build_model(add_neb=True, add_duste=True, complex_dust=True,
 # SPS Object
 # --------------
 
-def build_sps(zcontinuous=1, compute_vega_mags=False, **extras):
+def build_sps(zcontinuous=1, compute_vega_mags=False, parametric_sfh=False, **extras):
     from prospect.sources import FastStepBasis, CSPSpecBasis
-    sps = FastStepBasis(zcontinuous=zcontinuous,
-                        compute_vega_mags=compute_vega_mags)
+    if parametric_sfh:
+        sps = CSPSpecBasis(zcontinuous=zcontinuous, compute_vega_mags=compute_vega_mags)
+    else:
+        sps = FastStepBasis(zcontinuous=zcontinuous, compute_vega_mags=compute_vega_mags)
     return sps
 
 
@@ -220,47 +225,8 @@ def build_all(**kwargs):
     return (build_obs(**kwargs), build_model(**kwargs),
             build_sps(**kwargs), build_noise(**kwargs))
 
-# ---------------
-# Helper Functions
-# ----------------
-
-
 
 if __name__ == "__main__":
-
-    # - Parser with default arguments -
-    parser = prospect_args.get_parser(["optimize", "dynesty"])
-    # - Add custom arguments -
-    parser.add_argument('--zred', type=float, default=0.05,
-                        help="Redshift for the model (and mock).")
-
-    # Fitted Model specification
-    parser.add_argument('--nbins_sfh', type=int, default=14,
-                        help="Number of bins in the nonparametric SFH")
-    parser.add_argument('--add_neb', action="store_true",
-                        help="If set, add nebular emission in the model (and mock).")
-    parser.add_argument('--add_duste', action="store_true",
-                        help="If set, dust emission in the model (and mock).")
-
-    # Mock data construction
-    parser.add_argument('--filterset', type=str, default="optical",
-                        help="The filterset to fit.")
-    parser.add_argument('--snr_phot', type=float, default=20,
-                        help="S/N ratio for the mock spectroscopy.")
-    parser.add_argument('--add_noise', action="store_true",
-                        help="If set, noise up the mock.")
-    parser.add_argument('--seed', type=int, default=101,
-                        help=("RNG seed for the noise. Negative values result"
-                              "in random noise."))
-
-    # Mock physical parameters
-    parser.add_argument('--dust2', type=float, default=0.3,
-                        help="Dust attenuation V band optical depth")
-    parser.add_argument('--logzsol', type=float, default=-0.5,
-                        help="Metallicity of the mock; log(Z/Z_sun)")
-    parser.add_argument('--logmass', type=float, default=10,
-                        help="log stellar mass of the mock; solar masses formed")
-
 
     args = parser.parse_args()
     run_params = vars(args)
