@@ -21,6 +21,10 @@ tags=(phot spec specphot)
 snrp=(20 0 20)
 snrs=(0 10 10)
 
+tag=${tags[$SLURM_ARRAY_TASK_ID]}
+snr_phot=${snrp[$SLURM_ARRAY_TASK_ID]}
+snr_spec=${snrs[$SLURM_ARRAY_TASK_ID]}
+
 # model flags
 model="--add_neb --add_duste"
 
@@ -36,7 +40,8 @@ tau=4
 tage=12
 
 # photometry only
-python specphot_demo.py $fit $model --snr_spec= --snr_phot=20 --add_noise \
+python specphot_demo.py $fit $model \
+                        --snr_spec=$snr_spec --snr_phot=$snr_phot --add_noise --continuum_optimize \
                         --zred=$zred --zred_disp=1e-3 \
-                        --tau=$tau --tage=$tage --logzsol=$logzsol --mass=$mass dust2=$dust2 \
+                        --tau=$tau --tage=$tage --logzsol=$logzsol --mass=$mass --dust2=$dust2 \
                         --outfile=../output/mock_parametric_$tag

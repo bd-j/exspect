@@ -40,7 +40,7 @@ fagn=0.05
 agn_tau=20
 
 python nbands_demo.py $fit $model $data --filterset=$filterset \
-                      --zred=$zred --zred_disp=1e-3 \
-                      --nbins_sfh=$nbins_sfh --logzsol=$logzsol --logmass=$logmass dust2=$dust2 \
+                      --zred=$zred \
+                      --nbins_sfh=$nbins_sfh --logzsol=$logzsol --logmass=$logmass --dust2=$dust2 \
                       --duste_umin=$duste_umin --duste_qpah=$duste_qpah --fagn=$fagn --agn_tau=$agn_tau \
                       --outfile=../output/nband_fit_$filterset
