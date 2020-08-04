@@ -155,9 +155,14 @@ def build_model(add_neb=True, add_duste=True, complex_dust=True,
             model_params[p]["init"] = kwargs[p]
 
     # Alter some priors?
-    minit = model_params["logmass"]["init"]
-    model_params["logmass"]["prior"].params["maxi"] = minit + 1.5
-    model_params["logmass"]["prior"].params["mini"] = minit - 1.5
+    if parametric_sfh:
+        minit = model_params["mass"]["init"]
+        model_params["mass"]["prior"].params["maxi"] = minit * 10**1.5
+        model_params["mass"]["prior"].params["mini"] = minit / 10**1.5
+    else:
+        minit = model_params["logmass"]["init"]
+        model_params["logmass"]["prior"].params["maxi"] = minit + 1.5
+        model_params["logmass"]["prior"].params["mini"] = minit - 1.5
     model_params["logzsol"]["prior"] = priors.TopHat(mini=-2, maxi=0.2)
 
     return sedmodel.SpecModel(model_params)
