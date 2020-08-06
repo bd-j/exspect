@@ -8,10 +8,28 @@ from prospect.models.priors import TopHat
 
 
 pretty = {"logzsol": r"$\log (Z_{\star}/Z_{\odot})$",
-          "logmass": r"$\log M_{\star, formed}$",
-          "gas_logu": r"$U_{\rm neb}$",
-          "dust2": r"$\tau_V$",
-          "dust_index": r"$\Gamma_{\rm dust}$"}
+          "logmass": r"$\log {\rm M}_{\star, {\rm formed}}$",
+          "gas_logu": r"${\rm U}_{\rm neb}$",
+          "gas_logz": r"$\log (Z_{\neb}/Z_{\odot})$",
+          "dust2": r"$\tau_{\rm V}$",
+          "av": r"${\rm A}_{\rm V, diffuse}$",
+          "av_bc": r"${\rm A}_{\rm V, young}$",
+          "dust_index": r"$\Gamma_{\rm dust}$",
+          "igm_factor": r"${\rm f}_{\rm IGM}$",
+          "duste_umin": r"$U_{\rm min, dust}$",
+          "duste_qpah": r"$Q_{\rm PAH}$",
+          "duste_gamma": r"$\gamma_{\rm dust}$",
+          "log_fagn": r"$\log({\rm f}_{\rm AGN})$",
+          "agn_tau": r"$\tau_{\rm AGN}$",
+          "mwa": r"$\langle t \rangle_M$ (Gyr)",
+          "ssfr": r"$\log ({\rm sSFR})$ $({\rm M}_\odot/{\rm yr}$"}
+
+
+def get_simple_prior(prior, xlim, num=1000):
+    xx = np.linspace(*xlim, num=num)
+    px = np.array([prior(x) for x in xx])
+    px = np.exp(px)
+    return xx, px / px.max()
 
 
 def sample_prior(model, nsample=1e6):
@@ -102,9 +120,13 @@ def convolve_spec(wave, flux, R, minw=1e3, maxw=5e4, nufnu=False):
             for f in flux]
     fout = np.array(fout)
     if nufnu:
-        conv = 3631e-23 * 3e18 / owave
-        fout *= conv
-    return owave, fout
+        return to_nufnu(owave, fout)
+    else:
+        return owave, fout
+
+
+def to_nufnu(ang, maggies):
+    return ang / 1e4, maggies * 3631e-23 * 3e18 / ang
 
 
 def violinplot(data, pos, widths, ax=None,
@@ -141,7 +163,7 @@ def step(xlo, xhi, y=None, ylo=None, yhi=None, ax=None,
     clabel = label
     for i, (l, h) in enumerate(zip(xlo, xhi)):
         if y is not None:
-            ax.plot([l,h],[y[i],y[i]], label=clabel, linewidth=linewidth, **kwargs)
+            ax.plot([l,h], [y[i], y[i]], label=clabel, linewidth=linewidth, **kwargs)
         if ylo is not None:
             ax.fill_between([l,h], [ylo[i], ylo[i]], [yhi[i], yhi[i]], linewidth=0, **kwargs)
         clabel = None

@@ -44,4 +44,4 @@ python specphot_demo.py $fit $model \
                         --snr_spec=$snr_spec --snr_phot=$snr_phot --add_noise --continuum_optimize \
                         --zred=$zred --zred_disp=1e-3 \
                         --tau=$tau --tage=$tage --logzsol=$logzsol --mass=$mass --dust2=$dust2 \
-                        --outfile=../output/mock_parametric_$tag
+                        --outfile=output/mock_parametric_$tag

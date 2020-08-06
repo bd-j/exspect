@@ -518,6 +518,15 @@ def scatter(samples, paxes, **scatter_kwargs):
 
 def get_spans(span, samples, weights=None):
     """Get ranges from percentiles of samples
+    Parameters
+    ----------
+    samples : iterable of arrays
+        A sequence of arrays, one for each parameter.
+
+    Returns
+    -------
+    span : list of 2-tuples
+        A list of (xmin, xmax) for each parameter
     """
     ndim = len(samples)
     if span is None:

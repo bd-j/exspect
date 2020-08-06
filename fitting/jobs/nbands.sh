@@ -43,4 +43,4 @@ python nbands_demo.py $fit $model $data --filterset=$filterset \
                       --zred=$zred \
                       --nbins_sfh=$nbins_sfh --logzsol=$logzsol --logmass=$logmass --dust2=$dust2 \
                       --duste_umin=$duste_umin --duste_qpah=$duste_qpah --fagn=$fagn --agn_tau=$agn_tau \
-                      --outfile=../output/nband_fit_$filterset
+                      --outfile=output/nband_fit_$filterset
