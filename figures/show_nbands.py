@@ -18,11 +18,12 @@ from prospect.io import read_results as reader
 from prospect.io.write_results import chain_to_struct, dict_to_struct
 
 from exspect.examples.nband import build_sps
-from exspect.plotting import plot_defaults, colorcycle
-from exspect.plotting.utils import pretty, sample_prior, sample_posterior, sample_prior
-from exspect.plotting.utils import convolve_spec, to_nufnu
+from exspect.plotting.utils import sample_prior, sample_posterior, sample_prior
+from exspect.plotting.sed import convolve_spec, to_nufnu
 from exspect.plotting.corner import marginal
 from exspect.plotting.sfh import nonpar_recent_sfr, nonpar_mwa
+
+from defaults import pretty, plot_defaults, colorcycle
 
 
 none = r""
@@ -112,7 +113,7 @@ if __name__ == "__main__":
 
     parser = ArgumentParser()
     parser.add_argument("--results_file", type=str, default="")
-    parser.add_argument("--fignum", type=int, default=8)
+    parser.add_argument("--fignum", type=str, default="")
     parser.add_argument("--figext", type=str, default="pdf")
     parser.add_argument("--prior_samples", type=int, default=int(1e5))
     parser.add_argument("--n_seds", type=int, default=0)
@@ -123,13 +124,13 @@ if __name__ == "__main__":
     rcParams = plot_defaults(rcParams)
     fig = pl.figure(figsize=(19, 10.5))
     from matplotlib.gridspec import GridSpec
-    gs = GridSpec(8, 4,
+    gs = GridSpec(4, 8,
                   left=0.1, right=0.98, wspace=0.15, hspace=0.3, top=0.95, bottom=0.1)
 
-    caxes = [fig.add_subplot(gs[4+i, 0]) for i in range(4)]
-    caxes += [fig.add_subplot(gs[4+i, 1]) for i in range(3)]
-    caxes += [fig.add_subplot(gs[4+i, 2]) for i in range(3)]
-    caxes += [fig.add_subplot(gs[4+i, 3]) for i in range(2)]
+    caxes = [fig.add_subplot(gs[0, 4+i]) for i in range(4)]
+    caxes += [fig.add_subplot(gs[1, 4+i]) for i in range(3)]
+    caxes += [fig.add_subplot(gs[2, 4+i]) for i in range(3)]
+    caxes += [fig.add_subplot(gs[3, 4+i]) for i in range(2)]
     caxes = np.array(caxes)
     sax = fig.add_subplot(gs[:4, :4])
 
@@ -228,5 +229,13 @@ if __name__ == "__main__":
 
     artists = [data, post, truth]
     legends = ["Observed Photometry", "Posterior SED", "True SED"]
-    sax.legend(loc="lower left")
+    sax.legend(artists, legends, loc="lower left")
     sax.text(0.7, 0.3, filters[filterset], transform=sax.transAxes)
+
+    # --- Saving ---
+    # --------------
+    if args.fignum:
+        fig.savefig("paperfigures/{}.{}".format(args.fignum, args.figext), dpi=400)
+    else:
+        pl.ion()
+        pl.show()

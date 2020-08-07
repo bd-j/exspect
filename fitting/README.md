@@ -16,7 +16,7 @@ python specphot_demo.py --add_duste --zred=$zred --zred_disp=1e-3 \
                         --tau=$tau --tage=$tage --logzsol=$logzsol --mass=$mass dust2=$dust2 \
                         --snr_spec=0 --snr_phot=20 --add_noise \
                         --dynesty --nested_method=rwalk \
-                        --outfile=../output/mock_parametric_phot --debug
+                        --outfile=../output/mock_parametric_phot
 
 # spectroscopy only
 python specphot_demo.py --add_duste --zred=$zred --zred_disp=1e-3 \

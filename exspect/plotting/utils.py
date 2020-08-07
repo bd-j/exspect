@@ -6,23 +6,8 @@ import matplotlib.pyplot as pl
 from .corner import _quantile
 from prospect.models.priors import TopHat
 
-
-pretty = {"logzsol": r"$\log (Z_{\star}/Z_{\odot})$",
-          "logmass": r"$\log {\rm M}_{\star, {\rm formed}}$",
-          "gas_logu": r"${\rm U}_{\rm neb}$",
-          "gas_logz": r"$\log (Z_{\neb}/Z_{\odot})$",
-          "dust2": r"$\tau_{\rm V}$",
-          "av": r"${\rm A}_{\rm V, diffuse}$",
-          "av_bc": r"${\rm A}_{\rm V, young}$",
-          "dust_index": r"$\Gamma_{\rm dust}$",
-          "igm_factor": r"${\rm f}_{\rm IGM}$",
-          "duste_umin": r"$U_{\rm min, dust}$",
-          "duste_qpah": r"$Q_{\rm PAH}$",
-          "duste_gamma": r"$\gamma_{\rm dust}$",
-          "log_fagn": r"$\log({\rm f}_{\rm AGN})$",
-          "agn_tau": r"$\tau_{\rm AGN}$",
-          "mwa": r"$\langle t \rangle_M$ (Gyr)",
-          "ssfr": r"$\log ({\rm sSFR})$ $({\rm M}_\odot/{\rm yr}$"}
+__all__ = ["get_simple_prior", "sample_prior", "sample_posterior",
+           "violinplot", "step"]
 
 
 def get_simple_prior(prior, xlim, num=1000):
@@ -99,34 +84,6 @@ def sample_posterior(chain, weights=None, nsample=int(1e4),
         return flatchain[inds, :]
     else:
         return flatchain[inds, :], extra[inds, ...]
-
-
-def convolve_spec(wave, flux, R, minw=1e3, maxw=5e4, nufnu=False):
-    """Convolve a spectrum for display
-
-    Parameters
-    ----------
-    wave : ndarray opf shape (nwave,)
-        observed frame wavelength,
-
-    flux : iterable or ndarray of shape (nspec, nwave)
-        A list or array of spectra
-    """
-    from prospect.utils.smoothing import smoothspec
-
-    dlnlam = 1.0 / R / 2
-    owave = np.exp(np.arange(np.log(minw), np.log(maxw), dlnlam))
-    fout = [smoothspec(wave, f, resolution=R, outwave=owave, smoothtype="R")
-            for f in flux]
-    fout = np.array(fout)
-    if nufnu:
-        return to_nufnu(owave, fout)
-    else:
-        return owave, fout
-
-
-def to_nufnu(ang, maggies):
-    return ang / 1e4, maggies * 3631e-23 * 3e18 / ang
 
 
 def violinplot(data, pos, widths, ax=None,

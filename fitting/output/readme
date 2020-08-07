@@ -1,0 +1,1 @@
+use `ln -s timestamped_file.h5 generic_file.h5` to make links useable for figure plotting

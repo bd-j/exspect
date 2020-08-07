@@ -10,15 +10,14 @@ from prospect.io import read_results as reader
 from prospect.io.write_results import chain_to_struct
 from prospect.sources.constants import cosmo
 
-from exspect.plotting import plot_defaults, colorcycle
 from exspect.plotting.utils import get_simple_prior, sample_prior, sample_posterior
-from exspect.plotting.utils import pretty, violinplot, step
-from exspect.plotting.utils import to_nufnu, convolve_spec
+from exspect.plotting.utils import violinplot, step
+from exspect.plotting.sed import to_nufnu, convolve_spec
 from exspect.plotting.corner import marginal, allcorner, _quantile
 from exspect.plotting.sfh import ratios_to_sfrs
 
-
 from exspect.examples.photoz import zred_to_agebins, build_sps
+from defaults import pretty, plot_defaults, colorcycle
 
 
 def sfh_quantiles(time, bins, sfrs, q=[16, 50, 84]):
@@ -30,11 +29,10 @@ def sfh_quantiles(time, bins, sfrs, q=[16, 50, 84]):
 
 
 if __name__ == "__main__":
-    pl.ion()
 
     parser = ArgumentParser()
     parser.add_argument("--results_file", type=str, default="")
-    parser.add_argument("--fignum", type=int, default=11)
+    parser.add_argument("--fignum", type="", default="")
     parser.add_argument("--figext", type=str, default="pdf")
     parser.add_argument("--n_sample", type=int, default=1000)
     parser.add_argument("--n_seds", type=int, default=0)
@@ -66,12 +64,9 @@ if __name__ == "__main__":
     result, obs, model = reader.results_from(args.results_file)
     chain = chain_to_struct(result["chain"], model=model)
     weights = result["weights"]
-
     raw_samples = sample_posterior(result["chain"], result["weights"], nsample=args.n_sample)
     samples = chain_to_struct(raw_samples, model)
     agebins = np.array([zred_to_agebins(s["zred"], 5, 20) for s in samples])
-    sfh_samples = np.array([ratios_to_sfrs(s["logmass"], s["logsfr_ratios"], agebins=a)
-                            for s, a in zip(samples, agebins)])
 
     show = ["logzsol", "dust2", "logmass", "gas_logu", "dust_index", "igm_factor"]
 
@@ -81,7 +76,8 @@ if __name__ == "__main__":
     wc = 10**(4 * nufnu)
 
     owave, ophot, ounc = obs["phot_wave"], obs["maggies"], obs["maggies_unc"]
-    maxw = np.max(owave > 30e4) * 520e4 + np.max(owave < 30e4) * 30e4
+    phot_width = np.array([f.effective_width for f in obs["filters"]]) / wc
+    maxw, minw = np.max(owave + phot_width) * 1.02, 900.0
     if nufnu:
         _, ophot = to_nufnu(owave, ophot)
         owave, ounc = to_nufnu(owave, ounc)
@@ -97,14 +93,14 @@ if __name__ == "__main__":
         ind_best = np.argmax(result["lnprobability"])
         pbest = result["chain"][ind_best, :]
         spec_best, phot_best, mfrac_best = model.predict(pbest, obs=obs, sps=sps)
-        phot_width = np.array([f.effective_width for f in obs["filters"]])
 
         if nufnu:
-            swave, spec_best = convolve_spec(swave, spec_best, R=500 * 2.35, nufnu=True)
+            swave, spec_best = convolve_spec(swave, [spec_best], R=500 * 2.35, maxw=maxw, minw=minw, nufnu=True)
+            spec_best = np.squeeze(spec_best)
             _, phot = to_nufnu(pwave, phot)
             _, phot_best = to_nufnu(pwave, phot_best)
 
-        violinplot([p for p in phot.T], owave, phot_width / wc, ax=sax, **pkwargs)
+        violinplot([p for p in phot.T], owave, phot_width, ax=sax, **pkwargs)
         sax.plot(swave, spec_best, color=skwargs["color"], linewidth=0.5,
                  label=r"Highest probability spectrum ($z=${:3.2f})".format(chain[ind_best]["zred"][0]))
 
@@ -155,6 +151,9 @@ if __name__ == "__main__":
 
     # --- SFH posteriors ---
     # ----------------------------
+    sfh_samples = np.array([ratios_to_sfrs(s["logmass"], s["logsfr_ratios"], agebins=a)
+                            for s, a in zip(samples, agebins)])
+
     tlook = (10**agebins.T/1e9).T
     # show a few samples?
     #for i in range(20):
@@ -170,4 +169,9 @@ if __name__ == "__main__":
     hax.set_ylabel(r"SFR")
 
     # --- Saving ---
-    #fig.savefig("paperfigures/fig{}.{}".format(args.fignum, args.figext), dpi=400)
+    # --------------
+    if args.fignum:
+        fig.savefig("paperfigures/{}.{}".format(args.fignum, args.figext), dpi=400)
+    else:
+        pl.ion()
+        pl.show()
