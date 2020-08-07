@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""show_gnz11.py - show a photometric redshift fit to GNz-11
+"""
+
 from argparse import ArgumentParser
 import numpy as np
 import matplotlib.pyplot as pl
@@ -32,16 +35,20 @@ if __name__ == "__main__":
 
     parser = ArgumentParser()
     parser.add_argument("--results_file", type=str, default="")
-    parser.add_argument("--fignum", type="", default="")
+    parser.add_argument("--fignum", type=str, default="")
     parser.add_argument("--figext", type=str, default="pdf")
     parser.add_argument("--n_sample", type=int, default=1000)
     parser.add_argument("--n_seds", type=int, default=0)
     args = parser.parse_args()
 
+    show = ["logzsol", "dust2", "logmass", "gas_logu", "dust_index", "igm_factor"]
+
     # --- Set up axes & styles ---
     # ----------------------------
     rcParams = plot_defaults(rcParams)
     fig = pl.figure(figsize=(8.5, 10.5))
+    from matplotlib.lines import Line2D
+    from matplotlib.patches import Patch
     from matplotlib.gridspec import GridSpec
     gs = GridSpec(8, len(show), width_ratios=len(show) * [10],
                   height_ratios=[3, 1, 1.25, 3, 1.25, 2, 1.25, 3],
@@ -49,15 +56,21 @@ if __name__ == "__main__":
     sax = fig.add_subplot(gs[0, :])
     rax = fig.add_subplot(gs[1, :], sharex=sax)
     zax = fig.add_subplot(gs[3, :])
-    # paxes defined below as row 5
+    paxes = [fig.add_subplot(gs[5, i]) for i in range(len(show))]
     hax = fig.add_subplot(gs[7, :])
 
     pkwargs = dict(color=colorcycle[0], alpha=0.8)
     zkwargs = pkwargs
-    skwargs = dict(color=colorcycle[1], alpha=0.8)
+    skwargs = dict(color=colorcycle[1], linewidth=0.75)
     tkwargs = dict(color=colorcycle[3], linestyle="--", linewidth=0.75)
     rkwargs = dict(color=colorcycle[4], linestyle=":", linewidth=2)
+    dkwargs = dict(marker="o", linestyle="", mec="black", markerfacecolor=colorcycle[3])
     hkwargs = pkwargs
+
+    data = Line2D([], [], **dkwargs)
+    post = Patch(**pkwargs)
+    prior = Line2D([], [], **rkwargs)
+    sp = Line2D([], [], )
 
     # -- Read in ---
     # --------------
@@ -67,8 +80,8 @@ if __name__ == "__main__":
     raw_samples = sample_posterior(result["chain"], result["weights"], nsample=args.n_sample)
     samples = chain_to_struct(raw_samples, model)
     agebins = np.array([zred_to_agebins(s["zred"], 5, 20) for s in samples])
-
-    show = ["logzsol", "dust2", "logmass", "gas_logu", "dust_index", "igm_factor"]
+    ind_best = np.argmax(result["lnprobability"])
+    zbest = chain[ind_best]["zred"][0]
 
     # --- plot SED and SED posteriors ---
     # -----------------------------------
@@ -87,37 +100,36 @@ if __name__ == "__main__":
         sed_samples = [model.predict(p, obs=obs, sps=sps) for p in raw_samples[:args.n_seds]]
         phot = np.array([sed[1] for sed in sed_samples])
         spec = np.array([sed[0] for sed in sed_samples])
-        swave = sps.wavelengths * (1 + chain[ind_best]["zred"])
-        pwave = obs["phot_wave"]
 
-        ind_best = np.argmax(result["lnprobability"])
         pbest = result["chain"][ind_best, :]
         spec_best, phot_best, mfrac_best = model.predict(pbest, obs=obs, sps=sps)
-
+        swave = sps.wavelengths * (1 + chain[ind_best]["zred"])
         if nufnu:
             swave, spec_best = convolve_spec(swave, [spec_best], R=500 * 2.35, maxw=maxw, minw=minw, nufnu=True)
             spec_best = np.squeeze(spec_best)
+            pwave = obs["phot_wave"]
             _, phot = to_nufnu(pwave, phot)
             _, phot_best = to_nufnu(pwave, phot_best)
 
         violinplot([p for p in phot.T], owave, phot_width, ax=sax, **pkwargs)
-        sax.plot(swave, spec_best, color=skwargs["color"], linewidth=0.5,
-                 label=r"Highest probability spectrum ($z=${:3.2f})".format(chain[ind_best]["zred"][0]))
+        sax.plot(swave, spec_best, **skwargs)
 
     sax.errorbar(owave, ophot, ounc, linestyle="", color="black",)
-    sax.plot(owave, ophot, marker="o", linestyle="", mec="black",
-             markerfacecolor=tkwargs["color"], label="Data (??)")
+    sax.plot(owave, ophot, **dkwargs)
     sax.set_xscale("log")
     sax.set_yscale("log")
-    sax.set_ylim(1e-13, 5e-10)
-    sax.set_xlim(0.3, 5)
-    sax.legend(loc="upper left")
+    if not nufnu:
+        sax.set_ylim(1e-13, 5e-10)
+    sax.set_xlim(3e3 / wc, 5e4 / wc)
+    artists = [data, post, sp]
+    legends = [r"Data (??)", r"Posterior SED", r"MAP spectrum ($z=${:3.2f})".format(zbest)]
+    sax.legend(artists, legends, loc="upper left")
 
     # --- SED residuals ---
     # ---------------------
     if args.n_seds > 0:
         chi = (ophot - phot_best) / ounc
-        rax.plot(owave, chi, marker="o", linestyle="", color="black")
+        rax.plot(owave, chi, **dkwargs)#marker="o", linestyle="", color="black")
     rax.axhline(0, linestyle=":", color="black")
     rax.set_ylim(-2.8, 2.8)
     rax.set_ylabel(r"$\chi$")
@@ -139,11 +151,10 @@ if __name__ == "__main__":
 
     # --- parameter posteriors ---
     # ----------------------------
-    paxes = []
     for i, p in enumerate(show):
-        pax = fig.add_subplot(gs[5, i])
+        pax = paxes[i]
         marginal(np.squeeze(chain[p]), weights=weights, ax=pax, **pkwargs)
-        xx, px = get_simple_prior(model.config_dict[p]["prior"], pax)
+        xx, px = get_simple_prior(model.config_dict[p]["prior"], pax.get_xlim())
         pax.plot(xx, px * pax.get_ylim()[1] * 0.96, **rkwargs)
         pax.set_xlabel(pretty.get(p, p))
         paxes.append(pax)
@@ -166,7 +177,7 @@ if __name__ == "__main__":
     hax.fill_between(tarr, sq[0, :], sq[2, :], **hkwargs)
 
     hax.set_xlabel(r"Lookback Time (Gyr)")
-    hax.set_ylabel(r"SFR")
+    hax.set_ylabel(r"SFR (M$_\odot$/year)")
 
     # --- Saving ---
     # --------------

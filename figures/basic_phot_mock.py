@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""fig1.py - Basic parameteric fit
+"""Basic parameteric fit
 
 This script is intended to show a corner plot of the posterior PDF and the
 quality of the fit of a simple parameteric model to mock broadband photometry.
@@ -179,10 +179,12 @@ if __name__ == "__main__":
     sax.errorbar(owave, ophot, ounc, color="k", linestyle="")
     sax.plot(owave, ophot, **dkwargs)
     #sax.set_ylim(3e-9, 1e-7)
-    sax.set_xlim(3e3 / wc, 5e3 / wc)
+    sax.set_xlim(3e3 / wc, 10e3 / wc)
     sax.set_xscale("log")
     sax.set_yscale("log")
-    sax.set_xticklabels([])
+    sax.set_xlabel(r"$\lambda_{\rm obs}$ ($\mu$m)")
+    sax.set_ylabel(r"$\nu f_\nu$")
+    #sax.set_xticklabels([])
 
     artists = [data, post, spec]
     legends = ["Observed photometry", "Posterior SED", "MAP spectrum"]
@@ -190,7 +192,7 @@ if __name__ == "__main__":
 
     artists = [post, truth, prior]
     legends = ["Posterior", "Truth", "Prior"]
-    cfig.legend(artists, legends, (0.8, 0.25), frameon=True)
+    cfig.legend(artists, legends, (0.8, 0.3), frameon=True)
 
     # --- Saving ----
     # ---------------
