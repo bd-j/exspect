@@ -7,8 +7,13 @@
 #SBATCH -p conroy,shared # Partition to submit to
 #SBATCH --constraint=intel
 #SBATCH --mem-per-cpu=4000 #in MB
-#SBATCH -o /n/holyscratch01/conroy_lab/bdjohnson/exspect/fitting/logs/exspect_nbands_%A.out # Standard out goes to this file
-#SBATCH -e /n/holyscratch01/conroy_lab/bdjohnson/exspect/fitting/logs/exspect_nbands_%A.err # Standard err goes to this file
+#SBATCH -o /n/holyscratch01/conroy_lab/bdjohnson/exspect/fitting/logs/exspect_nbands_%A_%a.out # Standard out goes to this file
+#SBATCH -e /n/holyscratch01/conroy_lab/bdjohnson/exspect/fitting/logs/exspect_nbands_%A_%a.err # Standard err goes to this file
+
+module purge
+module load git/2.17.0-fasrc01
+module load gcc/9.2.0-fasrc01
+module load Anaconda3/5.0.1-fasrc01
 
 export GROUP=conroy_lab
 export MYSCRATCH=$SCRATCH/$GROUP/$USER

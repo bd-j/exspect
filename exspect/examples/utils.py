@@ -65,7 +65,7 @@ def build_mock(sps, model,
 
     # Now store some output
     mock['true_spectrum'] = spec.copy()
-    mock['true_maggies'] = phot.copy()
+    mock['true_maggies'] = np.copy(phot)
     mock['mock_params'] = deepcopy(model.params)
 
     # store the mock photometry
