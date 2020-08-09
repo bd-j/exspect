@@ -7,40 +7,9 @@ from scipy.special import gamma, gammainc
 from prospect.sources.constants import cosmo
 from .utils import step
 
-__all__ = ["show_sfh", "params_to_sfh",
-           "delay_tau", "delay_tau_cmf", "delay_tau_mwa", "delay_tau_ssfr",
+__all__ = ["params_to_sfh",
+           "parametric_cmf", "parametric_mwa", "parametric_sfr",
            "ratios_to_sfrs", "sfh_to_cmf", "nonpar_mwa", "nonpar_recent_sfr"]
-
-
-def show_sfh(ages, sfrs=None, ax=None,
-             ndraw=0, draw_kwargs={"color": "g", "linewidth": 2, "alpha": 0.5},
-             quantiles=[0.16, 0.5, 0.84], post_kwargs={"alpha": 0.5, "color": "slateblue"}):
-
-    sfrs = np.atleast_2d(sfrs)
-    binned = ages.ndim > 1
-    if binned:
-        cages = np.array(ages[:, 0].tolist() + [ages[-1, 1]])
-    else:
-        cages = ages
-
-    if quantiles is not None:
-        qq = np.percentile(sfrs, np.array(quantiles) * 100, axis=0)
-        if binned:
-            step(ages[:, 0], ages[:, 1], ylo=qq[0,:], yhi=qq[2,:], ax=ax, **post_kwargs)
-            step(ages[:, 0], ages[:, 1], qq[1,:], ax=ax, **post_kwargs)
-        else:
-            _ = fill_between(ages, qq[0, :], qq[2, :], ax=ax, **post_kwargs)
-            ax.plot(ages, qq[1, :], **post_kwargs)
-
-    if ndraw > 0:
-        if binned:
-            [step(ages[:, 0], ages[:, 1], s, ax=ax, **draw_kwargs)
-             for s in sfrs[:ndraw]]
-        else:
-            [ax.plot(ages, s, **draw_kwargs)
-             for s in sfrs[:ndraw]]
-
-    return ax
 
 
 def params_to_sfh(params, time=None, agebins=None):
@@ -52,12 +21,8 @@ def params_to_sfh(params, time=None, agebins=None):
         sfhs = []
         cmfs = []
         for tau, tage, mass in zip(taus, tages, masses):
-            x = np.array([1.0, tau, tage])
-            sfr_model = delay_tau(x, time)
-            A = mass / (np.trapz(sfr_model, time) * 1e9)
-            x = np.array([A, tau, tage])
-            sfhs.append(delay_tau(x, time))
-            cmfs.append(delay_tau_cmf(x[-2:], time))
+            sfhs.append(parametric_sfr(tau, tage, mass=mass, time=time))
+            cmfs.append(parametric_cmf(tau, tage, time))
         lookback = time.max() - time
         sfhs = np.array(sfhs)
         cmfs = np.array(cmfs)
@@ -73,49 +38,10 @@ def params_to_sfh(params, time=None, agebins=None):
     return lookback, sfhs, cmfs
 
 
-def stoch_params_to_sfh(params, sig=0.01):
-    """Take a stochastic parameter set and return an sfh
-
-    :returns lookback:
-        lookback time, Gyr
-
-    :returns sfr:
-        SFR, in Msun/yr
-    """
-    tuniv = cosmo.age(params["redshift"]).to("Gyr").value
-    nt = max(tuniv*2*10/sig, 1000)
-    lookback = np.linspace(0, tuniv, nt)
-    sfr = np.zeros_like(lookback)
-    const = params["mass"][0] / params["tage"][0]
-    sfr[lookback < params["tage"][0]] = const
-    # Bursts
-    stop = params["nburst"] + 1
-    tb = params["tage"][1:stop]
-    mb = params["mass"][1:stop]
-    sb = sig #* tb
-    exparg = -0.5 * ((lookback[:, None] - tb[None, :]) / sb)**2
-    bs = mb / (sb*np.sqrt(2*np.pi)) * np.exp(exparg)
-    sfr += bs.sum(axis=-1)
-
-    return lookback, sfr * 1e-9
-
-
-def delay_tau(theta, time=None):
-    A, tau, age = theta
-    tstart = time.max() - age
-    tt = (time - tstart) / tau
-    sfr = A * tt * np.exp(-tt)
-    sfr[tt < 0] = 0
-    if (age > time.max()) or (age < 0):
-        sfr *= 0.0
-    return sfr
-
-
-def delay_tau_cmf(theta, time=None):
-    tau, age = theta
-    if (age > time.max()) or (age < 0):
+def parametric_cmf(tau=4, tage=13.7, time=None):
+    if (tage > time.max()) or (tage < 0):
         return np.zeros_like(time)
-    tstart = time.max() - age
+    tstart = time.max() - tage
     tt = (time - tstart) / tau
     tt[tt < 0] = 0.0
     cmf = gammainc(2, tt)
@@ -123,34 +49,48 @@ def delay_tau_cmf(theta, time=None):
     return cmf
 
 
-def delay_tau_mwa_numerical(theta):
-    ''' this is done numerically
-    '''
-    tau, tage = theta
-    t = np.linspace(0, tage, 1000)
-    tavg = np.trapz((t**2)*np.exp(-t/tau), t) / np.trapz(t*np.exp(-t/tau), t)
+def parametric_mwa_numerical(tau=4, tage=13.7, power=1, n=1000):
+    """Compute Mass-weighted age
+
+    :param power: (optional, default: 1)
+        Use 0 for exponential decline, and 1 for te^{-t} (delayed exponential decline)
+    """
+    p = power + 1
+    t = np.linspace(0, tage, n)
+    tavg = np.trapz((t**p)*np.exp(-t/tau), t) / np.trapz(t**(power) * np.exp(-t/tau), t)
     return tage - tavg
 
 
-def delay_tau_mwa(theta):
-    ''' this is done analytic
-    '''
-    power = 1
-    tau, tage = theta
+def parametric_mwa(tau=4, tage=13.7, power=1):
+    """Compute Mass-weighted age. This is done analytically
+
+    :param power: (optional, default: 1)
+        Use 0 for exponential decline, and 1 for te^{-t} (delayed exponential decline)
+    """
     tt = tage / tau
     mwt = gammainc(power+2, tt) * gamma(power+2) / gammainc(power+1, tt) * tau
-
     return tage - mwt
 
 
-def delay_tau_ssfr(theta, power=1):
-    ''' just for the last age
-    '''
-    tau, tage = theta
-    tt = tage / tau
-    sfr = tt**power * np.exp(-tt) / tau
-    mtot = gammainc(power+1, tt)
-    return sfr/mtot * 1e-9
+def parametric_sfr(tau=4, tage=13.7, power=1, mass=None, logmass=None, times=None, **extras):
+    """Return the SFR (Msun/yr) for the given parameters
+
+    :param power: (optional, default: 1)
+        Use 0 for exponential decline, and 1 for te^{-t} (delayed exponential decline)
+
+    :param times: (optional, ndarray)
+        If given, a set up times where you want to calculate the sfr
+    """
+    if (mass is None) and (logmass is not None):
+        mass = 10**logmass
+    if times is None:
+        times = tage
+    else:
+        assert len(np.atleast_1d(tage)) == 1
+        assert len(np.atleast_1d(tau)) == 1
+    p = power + 1
+    psi = mass * (times/tau)**power * np.exp(-times/tau) / (tau * gamma(p) * gammainc(p, tage/tau))
+    return psi * 1e-9
 
 
 def ratios_to_sfrs(logmass, logsfr_ratios, agebins):
@@ -202,4 +142,4 @@ def sfh_to_cmf(sfrs, agebins):
     cmfs = np.append(zeros, cmfs, axis=-1)
     ages = 10**(np.array(agebins) - 9)
     ages = np.array(ages[:, 0].tolist() + [ages[-1, 1]])
-    return ages, np.squeeze(cmfs[...,::-1])
+    return ages, np.squeeze(cmfs[..., ::-1])

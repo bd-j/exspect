@@ -123,10 +123,10 @@ if __name__ == "__main__":
     pkwargs = dict(color=colorcycle[0], alpha=0.65)
     skwargs = dict(color=colorcycle[1], alpha=0.65)
     akwargs = dict(color=colorcycle[3], alpha=0.65)
-    dkwargs = dict(color="green", linestyle="-", linewidth=0.75, marker="")
+    dkwargs = dict(color="gray", linestyle="-", linewidth=0.75, marker="")
     rkwargs = dict(color=colorcycle[4], linestyle=":", linewidth=2)
     tkwargs = dict(color="gray", linestyle="-", linewidth=2.0, marker="o", mfc="k", mec="k")
-    lkwargs = dict(color="k", linestyle="-", linewidth=1.0, marker="")
+    lkwargs = dict(color="k", linestyle="-", linewidth=1.25, marker="")
     mkwargs = dict(alpha=0.5, histtype="stepfilled")
     hkwargs = [pkwargs, skwargs, akwargs]
 
