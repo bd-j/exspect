@@ -14,7 +14,6 @@ import matplotlib.pyplot as pl
 
 from prospect.io import read_results as reader
 from prospect.io.write_results import chain_to_struct, dict_to_struct
-from prospect.utils.plotting import get_truths
 
 from exspect.plotting.corner import allcorner, marginal, scatter, get_spans
 from exspect.plotting.utils import violinplot
@@ -80,12 +79,13 @@ if __name__ == "__main__":
 
     parser = ArgumentParser()
     parser.add_argument("--fignum", type=str, default="")
-    parser.add_argument("--figext", type=str, default="pdf")
+    parser.add_argument("--figext", type=str, default="png")
     parser.add_argument("--phot_file", type=str, default="")
     parser.add_argument("--prior_samples", type=int, default=int(1e4))
     parser.add_argument("--n_seds", type=int, default=0)
-
     args = parser.parse_args()
+
+    show = ["logmass", "logtau", "tage", "logzsol", "av"]
 
     # --- Axes ---
     # ------------
@@ -95,34 +95,37 @@ if __name__ == "__main__":
     from matplotlib.gridspec import GridSpec
     rcParams = plot_defaults(rcParams)
 
-    cfig, caxes = pl.subplots(5, 5, figsize=(14.5, 12))
+    cfig, caxes = pl.subplots(len(show), len(show), figsize=(14.5, 12),
+                              gridspec_kw={"top": 0.96, "right": 0.96})
     cfig.subplots_adjust(hspace=0.1, wspace=0.1)
-    sax = cfig.add_subplot(6, 2, 2)
-    #rax = cfig.add_subplot(6, 2, 4, sharex=sax)
+    #sax = cfig.add_subplot(4, 2, 2)
+    sax = cfig.add_axes([0.55, 0.75, 0.96-0.55, 0.96-0.75])
+    rax = cfig.add_axes([0.55, 0.65, 0.96-0.55, 0.75-0.65], sharex=sax)
 
     # --- Legend stuff ---
     # --------------------
     label_kwargs = {"fontsize": 14}
     tick_kwargs = {"labelsize": 12}
-    hkwargs = dict(alpha=0.5)
-    pkwargs = dict(color=colorcycle[0], alpha=0.8)
-    skwargs = dict(color=colorcycle[1], alpha=0.8)
-    dkwargs = dict(color=colorcycle[3], linestyle="", marker="o", mec="k", linewidth=0.75)
+
+    pkwargs = dict(color=colorcycle[0], alpha=0.65)
+    hkwargs = dict(histtype="stepfilled", alpha=pkwargs["alpha"])
+    dkwargs = dict(color=colorcycle[3], linestyle="", linewidth=0.75, marker="o", mec="k")
     rkwargs = dict(color=colorcycle[4], linestyle=":", linewidth=2)
-    tkwargs = dict(color="k", linestyle="dashed", marker="o", linewidth=2)
-    lkwargs = dict(color="k", marker="", linestyle="dashed", linewidth=2)
+
+    tkwargs = dict(color="k", linestyle="--", linewidth=1.5, mfc="k", mec="k")
+    lkwargs = dict(color="k", linestyle="-", linewidth=0.75, marker="")
 
     data = Line2D([], [], **dkwargs)
-    truth = Line2D([], [], **tkwargs)
+    truth = Line2D([], [], marker="o", **tkwargs)
     post = Patch(**pkwargs)
     prior = Line2D([], [], **rkwargs)
+    sp = Line2D([], [], **lkwargs)
 
     # -- Read in ---
     # --------------
     result, obs, model = reader.results_from(args.phot_file)
     chain = chain_to_struct(result["chain"], model)
     weights = result["weights"]
-    show = ["logmass", "logtau", "tage", "logzsol", "av"]
 
     # --- Corner plots ---
     # --------------------
@@ -134,10 +137,14 @@ if __name__ == "__main__":
     truths = convert(dict_to_struct(obs["mock_params"]))
     tvec = np.array([truths[p] for p in show])
     caxes = allcorner(xx, labels, caxes, weights=weights, span=spans,
-                      color=colorcycle[0], hist_kwargs=hkwargs,
-                      psamples=tvec, samples_kwargs={"color": tkwargs["color"], "edgecolor": "k"},
+                      color=pkwargs["color"], hist_kwargs=hkwargs,
+                      psamples=tvec, samples_kwargs={"color": tkwargs["mfc"], "edgecolor": "k"},
                       label_kwargs=label_kwargs,
                       tick_kwargs=tick_kwargs, max_n_ticks=4)
+
+    # Plot truth
+    for ax, p in zip(np.diagonal(caxes), show):
+        ax.axvline(truths[p], marker="", **tkwargs)
 
     if args.prior_samples > 0:
         show_priors(model, np.diag(caxes), spans, nsample=args.prior_samples,
@@ -149,8 +156,9 @@ if __name__ == "__main__":
     wc = 10**(4 * nufnu)
 
     owave, ophot, ounc = obs["phot_wave"], obs["maggies"], obs["maggies_unc"]
-    phot_width = np.array([f.effective_width for f in obs["filters"]]) / wc
+    phot_width = np.array([f.effective_width for f in obs["filters"]])
     maxw, minw = np.max(owave + phot_width) * 1.02, np.min(owave - phot_width) / 1.02
+    phot_width /= wc
     if nufnu:
         _, ophot = to_nufnu(owave, ophot)
         owave, ounc = to_nufnu(owave, ounc)
@@ -166,33 +174,51 @@ if __name__ == "__main__":
         ind_best = np.argmax(result["lnprobability"])
         pbest = result["chain"][ind_best, :]
         spec_best, phot_best, mfrac_best = model.predict(pbest, obs=obs, sps=sps)
-        swave = sps.wavelengths * (1 + chain[ind_best]["zred"])
+        awave = sps.wavelengths * (1 + chain[ind_best]["zred"])
         if nufnu:
-            swave, spec_best = convolve_spec(swave, [spec_best], R=500 * 2.35, maxw=maxw, minw=minw, nufnu=True)
+            swave, spec_best = convolve_spec(awave, [spec_best], R=500 * 2.35, maxw=maxw, minw=minw, nufnu=True)
             spec_best = np.squeeze(spec_best)
+            twave, spec_true = convolve_spec(awave, [obs["true_spectrum"]], R=500 * 2.35, maxw=maxw, minw=minw, nufnu=True)
+            spec_true = np.squeeze(spec_true)
             _, phot = to_nufnu(obs["phot_wave"], phot)
+            _, phot_best = to_nufnu(obs["phot_wave"], phot_best)
+        else:
+            swave = awave
 
         violinplot([p for p in phot.T], owave, phot_width, ax=sax, **pkwargs)
-        sax.plot(swave, spec_best, color=skwargs["color"], linewidth=0.5,
-                 label=r"Highest probability spectrum ($z=${:3.2f})".format(chain[ind_best]["zred"][0]))
+        sax.plot(twave, spec_true, **lkwargs,
+                 label=r"True spectrum")
+                 #label=r"Highest probability spectrum ($z=${:3.2f})".format(chain[ind_best]["zred"][0]))
 
     sax.errorbar(owave, ophot, ounc, color="k", linestyle="")
     sax.plot(owave, ophot, **dkwargs)
-    #sax.set_ylim(3e-9, 1e-7)
-    sax.set_xlim(3e3 / wc, 10e3 / wc)
+    if nufnu:
+        sax.set_ylim(1.3e-13, 0.7e-12)
+    else:
+        sax.set_ylim(3e-9, 1e-7)
+    sax.set_xlim(minw / wc, maxw / wc)
     sax.set_xscale("log")
     sax.set_yscale("log")
-    sax.set_xlabel(r"$\lambda_{\rm obs}$ ($\mu$m)")
-    sax.set_ylabel(r"$\nu f_\nu$")
-    #sax.set_xticklabels([])
+    sax.set_ylabel(r"$\nu f_\nu$", fontsize=16)
+    sax.set_xticklabels([])
 
-    artists = [data, post, spec]
-    legends = ["Observed photometry", "Posterior SED", "MAP spectrum"]
+    # --- SED residuals ---
+    # ---------------------
+    if args.n_seds > 0:
+        chi = (ophot - phot_best) / ounc
+        rax.plot(owave, chi, **dkwargs)  #marker="o", linestyle="", color="black")
+    rax.axhline(0, linestyle=":", color="black")
+    rax.set_ylim(-2.8, 2.8)
+    rax.set_ylabel(r"$\chi_{\rm best}$", fontsize=14)
+    rax.set_xlabel(r"$\lambda_{\rm obs}$ ($\mu$m)", fontsize=16)
+
+    artists = [sp, data, post]
+    legends = ["True Spectrum", "Mock photometry", "Posterior SED"]
     #sax.legend(loc="upper left")
 
-    artists = [post, truth, prior]
-    legends = ["Posterior", "Truth", "Prior"]
-    cfig.legend(artists, legends, (0.8, 0.3), frameon=True)
+    artists += [truth, prior, post]
+    legends += ["True Parameters", "Prior", "Posterior"]
+    cfig.legend(artists, legends, loc=(0.81, 0.45), frameon=True, fontsize=14)
 
     # --- Saving ----
     # ---------------

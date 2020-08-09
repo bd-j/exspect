@@ -32,8 +32,8 @@ tmass = r"2MASS: $JHK_s$"
 galex = r"GALEX: FUV, NUV"
 wise = r"WISE: W1,W2,W3,W4"
 herschel = r"Herschel/PACS: 70,100,160"
-filters = {"oneband": r"\nSDSS: $r$",
-           "twoband": r"\nSDSS: $gr$",
+filters = {"oneband": "\nSDSS: $r$",
+           "twoband": "\nSDSS: $gr$",
            "optical": "\n".join([none, sdss]),
            "opt_nir": "\n".join([none, sdss, tmass]),
            "uv_to_nir": "\n".join([galex, sdss, tmass]),
@@ -104,7 +104,8 @@ def get_simple_prior(prior, xlim, num=1000):
     xx = np.linspace(*xlim, num=num)
     px = np.array([prior(x) for x in xx])
     px = np.exp(px)
-    return xx, px / px.max()
+    px /= px.max()
+    return xx, px
 
 
 if __name__ == "__main__":
@@ -114,7 +115,7 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--results_file", type=str, default="")
     parser.add_argument("--fignum", type=str, default="")
-    parser.add_argument("--figext", type=str, default="pdf")
+    parser.add_argument("--figext", type=str, default="png")
     parser.add_argument("--prior_samples", type=int, default=int(1e5))
     parser.add_argument("--n_seds", type=int, default=0)
     args = parser.parse_args()
@@ -122,10 +123,13 @@ if __name__ == "__main__":
     # --- Axes ---
     # ------------
     rcParams = plot_defaults(rcParams)
-    fig = pl.figure(figsize=(19, 10.5))
+    rcParams.update({'font.size': 15})
+    rcParams.update({'xtick.labelsize': 12})
+    rcParams.update({'ytick.labelsize': 12})
+    fig = pl.figure(figsize=(15, 8.3))
     from matplotlib.gridspec import GridSpec
     gs = GridSpec(4, 8,
-                  left=0.1, right=0.98, wspace=0.15, hspace=0.3, top=0.95, bottom=0.1)
+                  left=0.1, right=0.98, wspace=0.2, hspace=0.65, top=0.95, bottom=0.1)
 
     caxes = [fig.add_subplot(gs[0, 4+i]) for i in range(4)]
     caxes += [fig.add_subplot(gs[1, 4+i]) for i in range(3)]
@@ -138,19 +142,19 @@ if __name__ == "__main__":
     # -----------------------
     label_kwargs = {"fontsize": 14}
     tick_kwargs = {"labelsize": 10}
-    hkwargs = dict(alpha=0.5)
-    pkwargs = dict(color=colorcycle[0], alpha=0.8)
-    skwargs = dict(color=colorcycle[1], alpha=0.8)
-    tkwargs = dict(color=colorcycle[3], linestyle="", marker="o", mec="k", linewidth=0.75)
+    pkwargs = dict(color=colorcycle[0], alpha=0.65)
+    dkwargs = dict(mfc=colorcycle[3], marker="o", linestyle="", mec="black", markersize=10, mew=2)
     rkwargs = dict(color=colorcycle[4], linestyle=":", linewidth=2)
-    lkwargs = dict(color="k", marker="", linestyle="dashed", linewidth=2)
+    lkwargs = dict(color="black", marker="", linestyle="-", linewidth=2)
+    tkwargs = dict(color="black", linestyle="--", linewidth=2, marker="")
 
     from matplotlib.lines import Line2D
     from matplotlib.patches import Patch
     post = Patch(**pkwargs)
-    data = Line2D([], [], **tkwargs)
+    data = Line2D([], [], **dkwargs)
     prior = Line2D([], [], **rkwargs)
-    truth = Line2D([], [], **lkwargs)
+    truth_sed = Line2D([], [], **lkwargs)
+    truth_par = Line2D([], [], **tkwargs)
 
     show = ["logmass", "ssfr", "logzsol", "mwa",
             "av", "av_bc", "dust_index",
@@ -167,28 +171,26 @@ if __name__ == "__main__":
 
     # --- Marginal plots ---
     # ----------------------
-    if True:
+    params = convert(chain, agebins)
+    truths = convert(dict_to_struct(obs['mock_params']), agebins)
 
-        params = convert(chain, agebins)
-        truths = convert(dict_to_struct(obs['mock_params']), agebins)
+    for i, p in enumerate(show):
+        ax = caxes.flat[i]
+        ax.set_xlabel(pretty.get(p, p))
+        marginal(params[p], ax, weights=weights, peak=1.0,
+                 histtype="stepfilled", **pkwargs)
+        # Plot truth
+        ax.axvline(truths[p], **tkwargs)
 
-        for i, p in enumerate(show):
-            ax = caxes.flat[i]
-            ax.set_xlabel(pretty.get(p, p))
-            marginal(params[p], ax, weights=weights, peak=1.0,
-                     histtype="stepfilled", **pkwargs)
-            # Plot truth
-            ax.axvline(truths[p], **lkwargs)
+    if args.prior_samples > 0:
+        spans = [ax.get_xlim() for ax in caxes.flat]
+        show_priors(model, caxes.flat, spans, nsample=args.prior_samples,
+                    smooth=0.02, show=show, **rkwargs)
 
-        if args.prior_samples > 0:
-            spans = [ax.get_xlim() for ax in caxes.flat]
-            show_priors(model, caxes.flat, spans, nsample=args.prior_samples,
-                        smooth=0.02, show=show, **rkwargs)
-
-        [ax.set_yticklabels([]) for ax in caxes.flat]
-        artists = [post, truth, prior]
-        legends = ["Posterior", "Truth", "Prior"]
-        fig.legend(artists, legends, (0.78, 0.1), frameon=True)
+    [ax.set_yticklabels([]) for ax in caxes.flat]
+    artists = [truth_par, prior, post]
+    legends = ["True Parameters", "Prior", "Posterior"]
+    fig.legend(artists, legends, (0.78, 0.1), frameon=True)
 
     # --- SED plot ---
     # -----------------------
@@ -218,19 +220,22 @@ if __name__ == "__main__":
         sax.fill_between(swave, qq[0, :], qq[-1, :], **pkwargs)
         sax.plot(twave, tspec[0], **lkwargs)
 
-    sax.plot(owave, ophot, **tkwargs)
+    sax.plot(owave, ophot, **dkwargs)
     sax.errorbar(owave, ophot, ounc, color="k", linestyle="")
 
     sax.set_yscale("log")
     sax.set_xscale("log")
-    sax.set_xlim(0.1, maxw/1e4)
+    sax.set_xlim(0.13, maxw/1e4)
     sax.set_xlabel(r"$\lambda_{\rm obs} (\mu{\rm m})$")
     sax.set_ylabel(r"$\nu f_\nu$")
+    if nufnu:
+        sax.set_ylim(1e-15, 1e-11)
 
-    artists = [data, post, truth]
-    legends = ["Observed Photometry", "Posterior SED", "True SED"]
-    sax.legend(artists, legends, loc="lower left")
-    sax.text(0.7, 0.3, filters[filterset], transform=sax.transAxes)
+    artists = [truth_sed, data, post]
+    legends = ["True SED", "Observed Photometry", "Posterior SED"]
+    sax.legend(artists, legends, loc="lower right")
+    sax.text(0.65, 0.3, filters[filterset], transform=sax.transAxes, fontsize=22)
+    [item.set_fontsize(22) for item in [sax.xaxis.label, sax.yaxis.label]]
 
     # --- Saving ---
     # --------------

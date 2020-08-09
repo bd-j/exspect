@@ -36,7 +36,7 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--results_file", type=str, default="")
     parser.add_argument("--fignum", type=str, default="")
-    parser.add_argument("--figext", type=str, default="pdf")
+    parser.add_argument("--figext", type=str, default="png")
     parser.add_argument("--n_sample", type=int, default=1000)
     parser.add_argument("--n_seds", type=int, default=0)
     args = parser.parse_args()
@@ -60,17 +60,15 @@ if __name__ == "__main__":
     hax = fig.add_subplot(gs[7, :])
 
     pkwargs = dict(color=colorcycle[0], alpha=0.8)
-    zkwargs = pkwargs
     skwargs = dict(color=colorcycle[1], linewidth=0.75)
-    tkwargs = dict(color=colorcycle[3], linestyle="--", linewidth=0.75)
+    dkwargs = dict(mfc=colorcycle[3], marker="o", linestyle="", mec="black")
     rkwargs = dict(color=colorcycle[4], linestyle=":", linewidth=2)
-    dkwargs = dict(marker="o", linestyle="", mec="black", markerfacecolor=colorcycle[3])
-    hkwargs = pkwargs
+    lkwargs = dict(color="k", marker="", linestyle="dashed", linewidth=2)
 
     data = Line2D([], [], **dkwargs)
     post = Patch(**pkwargs)
     prior = Line2D([], [], **rkwargs)
-    sp = Line2D([], [], )
+    sp = Line2D([], [], **skwargs)
 
     # -- Read in ---
     # --------------
@@ -79,7 +77,8 @@ if __name__ == "__main__":
     weights = result["weights"]
     raw_samples = sample_posterior(result["chain"], result["weights"], nsample=args.n_sample)
     samples = chain_to_struct(raw_samples, model)
-    agebins = np.array([zred_to_agebins(s["zred"], 5, 20) for s in samples])
+    nbins, zmax = result["run_params"]["nbins_sfh"], result["run_params"]["zmax"]
+    agebins = np.array([zred_to_agebins(s["zred"], nbins, zmax) for s in samples])
     ind_best = np.argmax(result["lnprobability"])
     zbest = chain[ind_best]["zred"][0]
 
@@ -89,8 +88,9 @@ if __name__ == "__main__":
     wc = 10**(4 * nufnu)
 
     owave, ophot, ounc = obs["phot_wave"], obs["maggies"], obs["maggies_unc"]
-    phot_width = np.array([f.effective_width for f in obs["filters"]]) / wc
+    phot_width = np.array([f.effective_width for f in obs["filters"]])
     maxw, minw = np.max(owave + phot_width) * 1.02, 900.0
+    phot_width /= 1e4
     if nufnu:
         _, ophot = to_nufnu(owave, ophot)
         owave, ounc = to_nufnu(owave, ounc)
@@ -110,6 +110,9 @@ if __name__ == "__main__":
             pwave = obs["phot_wave"]
             _, phot = to_nufnu(pwave, phot)
             _, phot_best = to_nufnu(pwave, phot_best)
+        else:
+            swave /= 1e4
+            owave /= 1e4
 
         violinplot([p for p in phot.T], owave, phot_width, ax=sax, **pkwargs)
         sax.plot(swave, spec_best, **skwargs)
@@ -119,17 +122,18 @@ if __name__ == "__main__":
     sax.set_xscale("log")
     sax.set_yscale("log")
     if not nufnu:
-        sax.set_ylim(1e-13, 5e-10)
-    sax.set_xlim(3e3 / wc, 5e4 / wc)
+        sax.set_ylim(1.1e-13, 5e-10)
+        sax.set_ylabel(r"$f_\nu$ (maggies)")
+    sax.set_xlim(0.3, 5)
     artists = [data, post, sp]
-    legends = [r"Data (??)", r"Posterior SED", r"MAP spectrum ($z=${:3.2f})".format(zbest)]
-    sax.legend(artists, legends, loc="upper left")
+    legends = [r"Data (O16)", r"Posterior SED", r"MAP spectrum ($z=${:3.2f})".format(zbest)]
+    sax.legend(artists, legends, loc="upper left", fontsize=10)
 
     # --- SED residuals ---
     # ---------------------
     if args.n_seds > 0:
         chi = (ophot - phot_best) / ounc
-        rax.plot(owave, chi, **dkwargs)#marker="o", linestyle="", color="black")
+        rax.plot(owave, chi, **dkwargs)  #marker="o", linestyle="", color="black")
     rax.axhline(0, linestyle=":", color="black")
     rax.set_ylim(-2.8, 2.8)
     rax.set_ylabel(r"$\chi$")
@@ -138,7 +142,7 @@ if __name__ == "__main__":
     # --- Redshift posterior ---
     # --------------------------------
     z = np.squeeze(chain["zred"])
-    marginal(z, ax=zax, weights=weights, **zkwargs)
+    marginal(z, ax=zax, weights=weights, histtype="stepfilled", **pkwargs)
     zp = model.config_dict["zred"]["prior"].params
     zax.set_xlim(zp["mini"], zp["maxi"])
     zax.set_xlabel("Redshift")
@@ -147,13 +151,15 @@ if __name__ == "__main__":
     zstr = r"$z_{{phot}}={{{:3.2f}}}^{{+{:3.2f}}}_{{-{:3.2f}}}$"
     zax.text(0.1, 0.8, zstr.format(q[1], q[2]-q[1], q[1]-q[0]), transform=zax.transAxes)
 
-    zax.axvline(11.09, **tkwargs)
+    zax.axvline(zbest, label=r"MAP redshift", linestyle="dashed", color=pkwargs["color"])
+    zax.axvline(11.09, label=r"Grism redshift (O16)", linestyle="dashed", color=dkwargs["mfc"])
+    zax.legend(loc=(0.08, 0.2), fontsize=10)
 
     # --- parameter posteriors ---
     # ----------------------------
     for i, p in enumerate(show):
         pax = paxes[i]
-        marginal(np.squeeze(chain[p]), weights=weights, ax=pax, **pkwargs)
+        marginal(np.squeeze(chain[p]), weights=weights, ax=pax, histtype="stepfilled", **pkwargs)
         xx, px = get_simple_prior(model.config_dict[p]["prior"], pax.get_xlim())
         pax.plot(xx, px * pax.get_ylim()[1] * 0.96, **rkwargs)
         pax.set_xlabel(pretty.get(p, p))
@@ -173,11 +179,11 @@ if __name__ == "__main__":
 
     tarr = np.linspace(tlook.min(), tlook.max(), 500)
     sq = sfh_quantiles(tarr, tlook, sfh_samples)
-    median_sfh = hax.plot(tarr, sq[1, :], color=hkwargs["color"], linewidth=2)
-    hax.fill_between(tarr, sq[0, :], sq[2, :], **hkwargs)
+    median_sfh = hax.plot(tarr, sq[1, :], color=pkwargs["color"], linewidth=2)
+    hax.fill_between(tarr, sq[0, :], sq[2, :], **pkwargs)
 
     hax.set_xlabel(r"Lookback Time (Gyr)")
-    hax.set_ylabel(r"SFR (M$_\odot$/year)")
+    hax.set_ylabel(r"SFR (M$_\odot$/yr)")
 
     # --- Saving ---
     # --------------

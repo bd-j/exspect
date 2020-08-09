@@ -37,5 +37,6 @@ pretty = {"logzsol": r"$\log (Z_{\star}/Z_{\odot})$",
           "ssfr": r"$\log ({\rm sSFR})$ $({\rm M}_\odot/{\rm yr}$",
           "tau": r"$\tau$ (Gyr)",
           "logtau": r"$\log(\tau)$ (Gyr)",
-          "tage": r"Age (Gyr)"}
+          "tage": r"Age (Gyr)",
+          "ageprime": r"Age/$\tau$"}
 

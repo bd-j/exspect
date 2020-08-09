@@ -10,198 +10,206 @@ a parameteric SFH inferred from
     * photometry + spectroscopy,
 """
 
-
+from copy import deepcopy
 import os, glob
 from argparse import ArgumentParser
 import numpy as np
 import matplotlib.pyplot as pl
 
 from prospect.io import read_results as reader
-from prospect.io.write_results import chain_to_struct
-from prospect.utils.plotting import get_truths
+from prospect.io.write_results import chain_to_struct, dict_to_struct
 
-from exspect.plotting.corner import allcorner, marginal, scatter, get_spans, corner, prettify_axes
-#from sedplot import truespec
+from exspect.plotting.corner import marginal, scatter, get_spans, corner, prettify_axes
 from exspect.plotting.utils import sample_prior
-from exspect.plotting import plot_defaults, colorcycle
+from exspect.plotting.utils import get_simple_prior, sample_prior, sample_posterior
+
+from exspect.plotting.sed import to_nufnu, convolve_spec
+
+from exspect.examples.parametric_mock_specphot import build_sps
+from defaults import pretty, plot_defaults, colorcycle
 
 
-def convert(chain, labels):
-    dust = 1.086 * chain[..., labels.index("dust2")]
-    z = chain[..., labels.index("logzsol")]
-    sfh, sfh_label = construct_sfh_measure(chain, labels)
-    return np.array([sfh, z, dust]), [sfh_label, "log Z/Z$_\odot$", "A$_V$"]
+def convert(chain, agebins=None):
+    """compute quantities from a structured chain (or dictionary)
+    """
+    cols = ["av", "logzsol"]
+    sfh, sfh_label = construct_sfh_measure(chain, agebins)
+    niter = len(sfh[0])
+    cols += sfh_label
+    dt = np.dtype([(c, np.float) for c in cols])
+    params = np.zeros(niter, dtype=dt)
+
+    for c in cols:
+        if c in chain.dtype.names:
+            params[c] = np.squeeze(chain[c])
+
+    # --- dust attenuation
+    params["av"] = np.squeeze(1.086 * chain["dust2"])
+
+    # --- stellar ---
+    for i, c in enumerate(sfh_label):
+        params[c] = np.squeeze(sfh[i])
+    return params
 
 
-def construct_sfh_measure(chain, labels):
-    sfh = chain[..., labels.index("tage")] / chain[..., labels.index("tau")]
-    return sfh, "$Age/\\tau$"
-    #sfh = chain[..., labels.index("tage")]
+def construct_sfh_measure(chain, agebins=None):
+    sfh = chain["tage"] / chain["tau"]
+    sfh = np.atleast_1d(np.squeeze(sfh))
+    return [sfh], ["ageprime"]
+    #sfh = chain["tage"]
     #return sfh, "$Age$" # "Age" | "$Age/\\tau$"
 
 
-def rectify(res, start=0):
-    chain = res["chain"][start:]
-    wghts = res["weights"][start:]
-    labels = res["theta_labels"]
-    values, newlabels = convert(chain, labels)
-
-    return values, newlabels, wghts
-
-
-def multispan(results):
-    spans = []
-    for r in results:
-        xx, labels, wghts = rectify(r, start=500)
-        spans.append(get_spans(None, xx, weights=wghts))
-
+def multispan(params, weights, show):
+    spans, xx = [], []
+    for par, w in zip(params, weights):
+        x = np.array([par[p] for p in show])
+        spans.append(get_spans(None, x, weights=w))
+        xx.append(x)
     spans = np.array(spans)
     span = spans[:,:, 0].min(axis=0), spans[:,:, 1].max(axis=0)
-
-    return tuple(np.array(span).T)
-
-
-def multicorner(results, colors, smooth=0.02,
-                tick_kwargs={}, max_n_ticks=3,
-                label_kwargs={}, truth_kwargs={},
-                hist_kwargs={}, hist2d_kwargs={}):
-    span = multispan(results)
-    ndim = len(span)
-    pfig, paxes = pl.subplots(ndim, ndim, figsize=(15, 12.5))
-    for i, r in enumerate(results):
-        xx, labels, wghts = rectify(r, start=500)
-        paxes = corner(xx, paxes, weights=wghts, span=span,
-                       smooth=smooth, color=colors[i],
-                       hist_kwargs=hist_kwargs, hist2d_kwargs=hist2d_kwargs)
-
-    prettify_axes(paxes, labels, max_n_ticks=max_n_ticks,
-                  label_kwargs=label_kwargs, tick_kwargs=tick_kwargs)
-
-    t = convert(get_truths(r)[0], r["theta_labels"])
-    tvec = np.atleast_2d(t[0]).T
-    scatter(tvec, paxes, zorder=10, **truth_kwargs)
-
-    return pfig, paxes
+    span = tuple(np.array(span).T)
+    return span, xx
 
 
-def show_priors(model, diagonals, spans, smooth=0.1, nsample=int(1e4),
-                color="g", **linekwargs):
+def show_priors(model, diagonals, spans, show=[], nsample=int(1e4),
+                smooth=0.1, color="g", **linekwargs):
     """
     """
-    ps, _ = convert(*sample_prior(model, nsample=nsample))
+    samples, _ = sample_prior(model, nsample=nsample)
+    priors = chain_to_struct(samples, model)
+    params = convert(priors)
     smooth = np.zeros(len(diagonals)) + np.array(smooth)
-    for i, (x, ax) in enumerate(zip(ps, diagonals)):
-        marginal(x, ax, span=spans[i], smooth=smooth[i],
-                 color=color, histtype="step", peak=ax.get_ylim()[1], **linekwargs)
+    for i, p in enumerate(show):
+        ax = diagonals[i]
+        if p in priors.dtype.names:
+            x, y = get_simple_prior(model.config_dict[p]["prior"], spans[i])
+            ax.plot(x, y * ax.get_ylim()[1] * 0.96, color=color, **linekwargs)
+        else:
+            marginal(params[p], ax, span=spans[i], smooth=smooth[i],
+                     color=color, histtype="step", peak=ax.get_ylim()[1], **linekwargs)
 
 
 if __name__ == "__main__":
 
     parser = ArgumentParser()
-    parser.add_argument("--fignum", type=int, default=2)
-    parser.add_argument("--figext", type=str, default="pdf")
+    parser.add_argument("--fignum", type=str, default="")
+    parser.add_argument("--figext", type=str, default="png")
     parser.add_argument("--phot_file", type=str, default="")
     parser.add_argument("--spec_file", type=str, default="")
     parser.add_argument("--specphot_file", type=str, default="")
+    parser.add_argument("--prior_samples", type=int, default=int(1e4))
     parser.add_argument("--n_seds", type=int, default=0)
     args = parser.parse_args()
 
-    import matplotlib
-    fmtr = matplotlib.ticker.ScalarFormatter()
+    show = ["ageprime", "logzsol", "av"]
+
+    # --- Axes ---
+    # ------------
     from matplotlib.lines import Line2D
     from matplotlib.patches import Patch
     from matplotlib import rcParams
     from matplotlib.gridspec import GridSpec
-
-    # --- Read-in ---
-    tag = "tau4_tage12_noiseTrue_nebFalse_maskFalse_normTrue_snr20"
-    v = -1
-    files = [args.phot_file, args.spec_file, args.specphot_file]
-
-    results, obs, models, sps = setup(files, sps=-1)
-    data = [o[f] for (o, f) in zip(obs, ftype)]
-
-    # --- Axes & Styles ---
     rcParams = plot_defaults(rcParams)
-    #fig = pl.figure()
-    #gs = GridSpec(4, 4)
 
-    label_kwargs = {"fontsize": 14}
-    tick_kwargs = {"labelsize": 12}
-
-    prior_kwargs = {"color": colorcycle[4], "linestyle": ":", "linewidth": 2}
-    hist_kwargs = {"alpha": 0.5, "histtype": "stepfilled"}
-    truth_kwargs = {"color": "k", "marker": "o"}
-    sed_kwargs = {"color": 'k', "linewidth": 1, "alpha":1.0}
-    data_kwargs =  {"color": colorcycle[3], "linestyle": "-", "markeredgewidth": 2}
+    pfig, paxes = pl.subplots(len(show), len(show), figsize=(15, 12.5))
+    sax = pfig.add_subplot(4, 2, 2)
+    #rax = cfig.add_subplot(6, 2, 4, sharex=sax)
 
     # --- Legend stuff ---
-    rtypes = ["Only Photometry", "Only Spectroscopy", "Photometry & Spectroscopy"]
+    # --------------------
+    label_kwargs = {"fontsize": 14}
+    tick_kwargs = {"labelsize": 12}
+    pkwargs = dict(color=colorcycle[0], alpha=0.65)
+    skwargs = dict(color=colorcycle[1], alpha=0.65)
+    akwargs = dict(color=colorcycle[3], alpha=0.65)
+    dkwargs = dict(color="green", linestyle="-", linewidth=0.75, marker="")
+    rkwargs = dict(color=colorcycle[4], linestyle=":", linewidth=2)
+    tkwargs = dict(color="gray", linestyle="-", linewidth=2.0, marker="o", mfc="k", mec="k")
+    lkwargs = dict(color="k", linestyle="-", linewidth=1.0, marker="")
+    mkwargs = dict(alpha=0.5, histtype="stepfilled")
+    hkwargs = [pkwargs, skwargs, akwargs]
 
-    patches = [Patch(color=c, alpha=hist_kwargs["alpha"]) for c in colorcycle]
-    dot = Line2D([], [], linestyle="", **truth_kwargs)
-    prior = Line2D([], [], **prior_kwargs)
-    artists = [dot, prior] + patches
-    legends = ["True Parameters", "Prior"] + rtypes
+    data = Line2D([], [], **dkwargs)
+    truth = Line2D([], [], **tkwargs)
+    posts = [Patch(**kwargs) for kwargs in hkwargs]
+    prior = Line2D([], [], **rkwargs)
+
+    # --- Read-in ---
+    # ---------------
+    rtypes = ["Only Photometry", "Only Spectroscopy", "Photometry & Spectroscopy"]
+    files = [args.phot_file, args.spec_file, args.specphot_file]
+
+    out = [reader.results_from(os.path.expandvars(f)) for f in files]
+    chains = [chain_to_struct(result["chain"], model) for result, obs, model in out]
+    weights = [result["weights"] for result, obs, model in out]
+    phot, spec, specphot = [o[1] for o in out]
+
+    result = out[-1][0]
+    model = out[-1][-1]
 
     # --- Corner plots ---
-    if True:
-        t = [convert(get_truths(r)[0], r["theta_labels"])
-             for r in results]
-        truths = dict(zip(t[0][1], t[0][0]))
-        pfig, paxes = multicorner(results, colorcycle,
-                                  label_kwargs=label_kwargs, tick_kwargs=tick_kwargs,
-                                  truth_kwargs=truth_kwargs, hist_kwargs=hist_kwargs)
-        show_priors(models[0], np.diag(paxes), multispan(results),
-                    smooth=[0.1, 0.3, 0.3], **prior_kwargs)
+    # --------------------
+    params = [convert(chain) for chain in chains]
+    spans, xx = multispan(params, weights, show)
+    truths = convert(dict_to_struct(specphot["mock_params"]))
+    tvec = np.array([truths[p] for p in show])
+    labels = [pretty.get(p, p) for p in show]
 
+    for i, (x, w) in enumerate(zip(xx, weights)):
+        kwargs, color = deepcopy(hkwargs[i]), hkwargs[i]["color"]
+        _ = kwargs.pop("color")
+        kwargs["histtype"] = "stepfilled"
+        paxes = corner(x, paxes, weights=w, span=spans,
+                       smooth=0.02, color=color,
+                       hist_kwargs=kwargs, hist2d_kwargs=mkwargs)
+
+    scatter(tvec, paxes, zorder=10, color=tkwargs["mfc"], edgecolor="k")
+    prettify_axes(paxes, labels, label_kwargs=label_kwargs, tick_kwargs=tick_kwargs)
+    if args.prior_samples > 0:
+        show_priors(model, np.diag(paxes), spans, nsample=args.prior_samples,
+                    show=show, smooth=0.1, **rkwargs)
 
     # ---- Spectrum inset plot ------
-    if True:
+
+    # --- True spectrum (normalized) ---
+    truespec = np.atleast_2d(specphot["true_spectrum"])
+    tspec = np.squeeze(truespec / specphot["continuum"])
+    ind_best = np.argmax(result["lnprobability"])
+    pbest = result["chain"][ind_best, :]
+
+    if args.n_seds > 0:
         # --- get samples ---
-        #sps = reader.get_sps(result)
-        #sample_kwargs = {"nsample": int(1e4), "start": 0.2,
-        #                "weights": result["weights"]}
-        #thetas, fluxes = posterior_sed(result["chain"], model, obs, sps, sample_kwargs=sample_kwargs)
+        raw_samples = sample_posterior(result["chain"], result["weights"], nsample=args.n_seds)
+        sps = build_sps(**result["run_params"])
+        sed_samples = [model.predict(p, obs=specphot, sps=sps) for p in raw_samples[:args.n_seds]]
+        pphot = np.array([sed[1] for sed in sed_samples])
+        pspec = np.array([sed[0] for sed in sed_samples])
+        qq = np.percentile(pspec, [16, 50, 84], axis=0)
+        spec_best, phot_best, mfrac_best = model.predict(pbest, obs=specphot, sps=sps)
+        sax.plot(specphot["wavelength"], spec_best, **skwargs)
 
-        # --- True spectrum (normalized) ---
-        #twave, tspec = truespec(obs, model, sps, R=500 * 2.35, nufnu=False)
-        ii = 2
-        o = obs[ii]
-        tspec = o["true_spectrum"] / o["continuum"]
-        twave = o["wavelength"]
-        tcont = o["continuum"].copy()
-        tmask = o["mask"].copy()
-
-        #order = models[1].params["polyorder"]
-        #tcal = polyopt(tspec, obs[1], order=12)[0]
-        #tspec *= tcal
-        #truth = {"spectrum": tspec,
-        #         "wavelength": twave,
-        #         "unc": np.zeros_like(tspec),
-        #         "mask": slice(None)}
-
-        norm = np.median(tspec)
-
-        # --- plot ----
-        sax = pfig.add_subplot(4, 2, 2)
-        sax.plot(obs[ii]["wavelength"], obs[ii]["spectrum"] / norm, **data_kwargs)
-        sax.plot(twave, tspec / norm, **sed_kwargs)
-
-        data = Line2D([], [], **data_kwargs)
-        sed = Line2D([], [], **sed_kwargs)
-
-        artists = [sed, data] + artists
-        legends = ["True Spectrum\n(Continuum Normalized)", "Mock Data"] + legends
-
-        sax.set_ylabel("$Flux$")
-        sax.set_xlabel("$\\lambda \, (\AA)$")
+    sax.plot(specphot["wavelength"], specphot["spectrum"], **dkwargs)
+    sax.plot(specphot["wavelength"], tspec, **lkwargs)
 
 
+    sax.set_ylabel(r"Flux")
+    sax.set_xlabel(r"$\lambda_{\rm obs} \, (\AA)$")
+    miny = specphot["spectrum"].min() * 0.9
+    maxy = np.median(specphot["spectrum"]) * 5
+    sax.set_ylim(miny, maxy)
 
+    sp = Line2D([], [], **lkwargs)
+
+    artists = [sp, data, truth, prior] + posts
+    legends = ["True Spectrum\n(Continuum Normalized)", "Mock Data", "True Parameters", "Prior"] + rtypes
     pfig.subplots_adjust(hspace=0.1, wspace=0.1)
-    pfig.suptitle(tag)
-    pfig.legend(artists, legends, loc='upper right', bbox_to_anchor=(0.85, 0.6), frameon=True)
+    pfig.legend(artists, legends, loc='upper right', bbox_to_anchor=(0.9, 0.6), frameon=True, fontsize=14)
 
-    pl.show()
-    pfig.savefig("paperfigures/fig{}.{}".format(args.fignum, args.figext), dpi=400)
+    # --- Saving ----
+    # ---------------
+    if args.fignum:
+        pfig.savefig("paperfigures/{}.{}".format(args.fignum, args.figext), dpi=400)
+    else:
+        pl.ion()
+        pl.show()
