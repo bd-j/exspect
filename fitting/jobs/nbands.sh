@@ -44,7 +44,7 @@ duste_umin=2
 duste_qpah=1
 fagn=0.05
 agn_tau=20
-mock="--logzsol=${logzsol} --logmass=${logmass} dust2=${dust2}"
+mock="--logzsol=${logzsol} --logmass=${logmass} --dust2=${dust2}"
 mock=$mock" --duste_umin=${duste_umin} --duste_qpah=${duste_qpah}"
 mock=$mock" --fagn=${fagn} --agn_tau=${agn_tau}"
 

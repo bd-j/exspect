@@ -50,7 +50,7 @@ duste_qpah=1
 fagn=0.05
 agn_tau=20
 nbins_sfh=6
-mock="--logzsol=${logzsol} --logmass=${logmass} dust2=${dust2}"
+mock="--logzsol=${logzsol} --logmass=${logmass} --dust2=${dust2}"
 mock=$mock" --duste_umin=${duste_umin} --duste_qpah=${duste_qpah}"
 mock=$mock" --fagn=${fagn} --agn_tau=${agn_tau}"
 
@@ -63,7 +63,7 @@ filterset=optical
 
 python nbands_demo.py $fit $opts $data --filterset=$filterset \
                       $mock --zred=$zred --nbins_sfh=$nbins_sfh  \
-                      --outfile=../output/nbands_fit_$filterset
+                      --outfile=output/nbands_fit_$filterset
 ```
 
 ## Section 4: Real data
@@ -72,19 +72,22 @@ python nbands_demo.py $fit $opts $data --filterset=$filterset \
 
 ```sh
 ggc_index=1
-opts="--jitter_model --outlier_model --continuum_order=15"
+opts="--jitter_model --add_realism --continuum_order=15"
 fit="--dynesty --nested_method=rwalk"
 data="--ggc_data=../data/ggc.h5 --ggc_index=${ggc_index} --mask_elines"
 
 python ggc.py $fit $opts $data \
-              --outfile=../output/ggc_$ggc_index
+              --outfile=output/ggc_id$ggc_index
 ```
 
 ### Photo-z (S4.2)
 
 ```sh
-python photoz_GNz11.py --free_igm --add_neb --complex_dust --free_neb_met --nbins_sfh 5 \
-                       --dynesty --nested_method=rwalk --outfile photoz_gnz11
+opts="--free_igm --add_neb --complex_dust --free_neb_met"
+fit="--dynesty --nested_method=rwalk"
+
+python photoz_GNz11.py $fit $opts --nbins_sfh=5 \
+                       --outfile output/photoz_gnz11
 ```
 
 ### SDSS post-starburst (S4.3)
