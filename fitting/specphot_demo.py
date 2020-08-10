@@ -289,13 +289,41 @@ def build_obs(dlambda_spec=2.0, wave_lo=3800, wave_hi=7000.,
     if has_spectrum & mask_elines:
         mock['mask'] = np.ones(len(mock['wavelength']), dtype=bool)
         a = (1 + model.params['zred'])  # redshift the mask
-        lines = np.array([3729, 3799.0, 3836.5, 3870., 3890.2, 3970, 4072.0,  # misc
-                          4103., 4341.7, 4862.7, 4960.3, 5008.2,  #hgamma + hdelta + hbeta + oiii
-                          5877.2, 5890.0, 6302.1, 6549.9, 6564.6, 6585.3,  # naD + oi + halpha + nii
-                          6680.0, 6718.3, 6732.7, 7137.8])  # sii
-        mock['mask'] = mock['mask'] & eline_mask(mock['wavelength'], lines * a, 18.0 * a)
+        # mask everything > L(Ha)/100
+        lines = np.array([3727, 3730, 3799.0, 3836.5, 3870., 3890.2, 3970,  # OII + H + NeIII
+                          4103., 4341.7, 4862.7, 4960.3, 5008.2,            # H[b,g,d]  + OIII
+                          4472.7, 5877.2, 5890.0,           # HeI + NaD
+                          6302.1, 6549.9, 6564.6, 6585.3,   # OI + NII + Halpha
+                          6680.0, 6718.3, 6732.7, 7137.8])  # HeI + SII + ArIII
+        mock['mask'] = mock['mask'] & eline_mask(mock['wavelength'], lines * a, 9.0 * a)
 
     return mock
+
+# 3836.485,H 3835
+# 3869.86,[NeIII]3870
+# 3889.75,HeI 3889
+# 3890.166,H 3889
+# 3968.59,[NeIII]3968
+
+# 3971.198,H 3970
+# 4102.892,H delta 4102
+# 4341.692,H gamma 4340
+# 4472.735,HeI 4472
+# 4862.71,H beta 4861
+# 4960.295,[OIII]4960
+# 5008.24,[OIII]5007
+
+# 5877.249,HeI 5877
+
+# 6302.046,[OI]6302
+# 6549.86,[NII]6549
+# 6564.6,H alpha 6563
+# 6585.27,[NII]6585
+# 6679.995,HeI 6680
+# 6718.294,[SII]6717
+# 6732.673,[SII]6732
+# 7137.77,[ArIII]7138
+
 
 # -----------------
 # Noise Model
@@ -314,8 +342,6 @@ def build_all(**kwargs):
 
     return (build_obs(**kwargs), build_model(**kwargs),
             build_sps(**kwargs), build_noise(**kwargs))
-
-
 
 
 if __name__ == "__main__":

@@ -297,14 +297,6 @@ def build_obs(dlambda_spec=2.0, wave_lo=3800, wave_hi=7000.,
 
     return mock
 
-# -----------------
-# Noise Model
-# ------------------
-
-
-def build_noise(**extras):
-    return None, None
-
 # -----------
 # Everything
 # ------------
@@ -313,7 +305,7 @@ def build_noise(**extras):
 def build_all(**kwargs):
 
     return (build_obs(**kwargs), build_model(**kwargs),
-            build_sps(**kwargs), build_noise(**kwargs))
+            build_sps(**kwargs), (None, None))
 
 
 if __name__ == "__main__":

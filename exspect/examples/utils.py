@@ -134,7 +134,8 @@ def get_lsf(wave_obs, sigma_v, miles_fwhm_aa=2.54, zred=0.0, **extras):
 
 
 def load_sdss(sdss_filename="", **extras):
-    """This method loads an SDSS spectral file (BOSS style spec-PLATE-MJD-FIBER.fits, by DR16 and possibly earlier)
+    """This method loads an SDSS spectral file (BOSS style spec-PLATE-MJD-FIBER.fits,
+    by DR16 and possibly earlier)
     """
     import astropy.io.fits as fits
     with fits.open(sdss_filename) as hdus:

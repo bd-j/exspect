@@ -214,13 +214,6 @@ def build_obs(filterset="optical", snr_phot=10., add_noise=False, seed=101,
 
     return mock
 
-# -----------------
-# Noise Model
-# ------------------
-
-def build_noise(**extras):
-    return None, None
-
 # -----------
 # Everything
 # ------------
@@ -228,7 +221,7 @@ def build_noise(**extras):
 def build_all(**kwargs):
 
     return (build_obs(**kwargs), build_model(**kwargs),
-            build_sps(**kwargs), build_noise(**kwargs))
+            build_sps(**kwargs), (None, None))
 
 
 if __name__ == "__main__":

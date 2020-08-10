@@ -109,7 +109,6 @@ def build_model(zmean=-1, zdisp=None, zmax=20, nbins_sfh=6,
     # rest are evenly spaced in log(age) up to the age of the universe at that redshift
     model_params["agebins"]["depends_on"] = zred_to_agebins
 
-
     # --- We *are* fitting for redshift ---
     model_params["zred"]["isfree"] = True
     if zmean > 0 :
@@ -117,7 +116,6 @@ def build_model(zmean=-1, zdisp=None, zmax=20, nbins_sfh=6,
         model_params["zred"]["prior"] = priors.Normal(mean=zmean, sigma=zdisp)
     else:
         model_params["zred"]["prior"] = priors.TopHat(mini=1, maxi=13)
-
 
     # --- Complexify Dust attenuation ---
     # Switch to Kriek and Conroy 2013
@@ -136,7 +134,6 @@ def build_model(zmean=-1, zdisp=None, zmax=20, nbins_sfh=6,
     if complex_dust:
         model_params["dust_index"]["isfree"] = True
         model_params["dust_ratio"]["isfree"] = True
-
 
     # --- IGM, nebular and dust emission ---
     model_params.update(TemplateLibrary["igm"])
@@ -168,15 +165,6 @@ def zred_to_agebins(zred=None, nbins_sfh=5, zmax=20.0, **extras):
     agebins = np.array([agelims[:-1], agelims[1:]])
     return agebins.T
 
-
-# -----------------
-# Noise Model
-# ------------------
-
-
-def build_noise(**extras):
-    return None, None
-
 # -----------
 # Everything
 # ------------
@@ -185,7 +173,7 @@ def build_noise(**extras):
 def build_all(**kwargs):
 
     return (build_obs(**kwargs), build_model(**kwargs),
-            build_sps(**kwargs), build_noise(**kwargs))
+            build_sps(**kwargs), (None, None))
 
 
 if __name__ == "__main__":

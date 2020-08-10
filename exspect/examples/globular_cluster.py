@@ -121,93 +121,9 @@ def build_model(continuum_order=0, add_neb=False, zred=0., zred_disp=1e-3, **kwa
         return sedmodel.SpecModel(model_params)
 
 # --------------
-# OBS
-# --------------
-
-
-def build_obs(ggc_data="data/ggc/ggc.h5", ggc_id="NGC104", ggc_index=-1,
-              wave_lo=3800, wave_hi=7200., mask_elines=False, snr_spec=0,
-              filterset=bessell, snr_phot=20., norm_band="bessell_B",
-              continuum_optimize=False, **kwargs):
-    """Load a ggc dataset
-
-    :param wave_lo:
-        The (restframe) minimum wavelength of the spectrum.
-
-    :param wave_hi:
-        The (restframe) maximum wavelength of the spectrum.
-
-    :param filterset:
-        A list of `sedpy` filter names.  Mock photometry will be generated
-        for these filters.
-
-    :param snr_phot:
-        The S/N of the phock photometry.  This can also be a vector of same
-        lngth as the number of filters, for heteroscedastic noise.
-
-     :returns obs:
-        Dictionary of observational data.
-    """
-    import h5py
-    from prospect.utils.obsutils import fix_obs
-    with h5py.File(ggc_data, "r") as hfile:
-        if ggc_index >= 0:
-            ggc_id = list(hfile.keys())[ggc_index]
-        group = hfile[ggc_id]
-        info = group["info"][:]
-        spec = group["spec"][:]
-
-    # --- Now fill the obs dictionary ----
-    obs = dict(cluster=ggc_id, distance=info["dist"], ebv=info["ebv"], vrad=info["vrad"],
-               wavelength=spec["wavelength"], spectrum=spec["spectrum"], unc=spec["unc"],
-               sky=spec["sky"])
-    obs['mask'] = ((obs["wavelength"] > 0) & (obs["unc"] > 0) &
-                   (obs["wavelength"] > wave_lo) & (obs["wavelength"] < wave_hi))
-
-    bands = [f.split('_')[-1] for f in filterset]
-    mags = np.squeeze(np.array([info[b] for b in bands]))
-    # shift to 10 kpc
-    dm = 5.0 * np.log10(obs["dist"] / 10.0)
-    obs["filters"] = load_filters(filterset)
-    obs["maggies"] = np.squeeze(10**(-0.4 * (mags - dm)))
-    # The photometry does not come with errors...
-    obs["maggies_unc"] = obs["maggies"] / snr_phot
-    obs["phot_mask"] = np.isfinite(obs["maggies"])
-
-    obs = normalize_ggc_spec(obs, norm_band=norm_band)
-
-    # continuum normalize ?
-    if continuum_optimize:
-        pass
-        # This fits a low order polynomial to the spectrum and then divides by
-        # that to get a continuum normalized spectrum.
-        #cont, _ = fit_continuum(obs["wavelength"], spec, normorder=6, nreject=3)
-        #cont = cont / cont.mean()
-        #spec = spec / cont
-        #obs["continuum"] = cont
-
-    # Masking
-    if mask_elines:
-        a = (1 + obs["vrad"] / 2.998e5)
-        # vacuum , observed frame
-        bad_obsframe = [(4152., 4165.), (4540., 4560.),
-                        (5042., 5057.), (5572., 5587.),  # ?, OI
-                        (5885., 5905.),  # NaD
-                        (6055., 6080.), (6220., 6230.),
-                        (6295., 6310.), (6330., 6380.)]  # OI, OI
-        lines = [(lo / a, hi/a) for lo, hi in bad_obsframe]
-
-        obs['mask'] = obs['mask'] & eline_mask(obs['wavelength'], lines, pad=18.)
-
-    obs['phot_wave'] = np.array([f.wave_effective for f in obs['filters']])
-    obs['phot_mask'] = obs['phot_wave'] < 6e4  # only the two blue WISE filters
-
-    return fix_obs(obs)
-
-
-# --------------
 # SPS Object
 # --------------
+
 
 def build_sps(zcontinuous=1, compute_vega_mags=False, add_realism=False, **extras):
     """Load the SPS object.  If add_realism is True, set up to convolve the
@@ -229,15 +145,6 @@ def build_sps(zcontinuous=1, compute_vega_mags=False, add_realism=False, **extra
 def build_noise(**extras):
     return None, None
 
-# -----------
-# Everything
-# ------------
-
-
-def build_all(**kwargs):
-
-    return (build_obs(**kwargs), build_model(**kwargs),
-            build_sps(**kwargs), build_noise(**kwargs))
 
 # -----------------
 # Helper Functions

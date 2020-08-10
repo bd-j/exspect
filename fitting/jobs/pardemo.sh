@@ -35,6 +35,9 @@ model="--add_neb --add_duste"
 # fitting flags
 fit="--dynesty --nested_method=rwalk"
 
+# data flags
+data="--add_noise --continuum_optimize"
+
 # mock parameters
 zred=0.1
 logzsol=-0.3
@@ -42,10 +45,10 @@ dust2=0.3
 mass=1e10
 tau=4
 tage=12
+mock="--zred=${zred} --tau=$tau --tage=$tage --logzsol=$logzsol --mass=$mass --dust2=$dust2"
 
-# photometry only
-python specphot_demo.py $fit $model \
-                        --snr_spec=$snr_spec --snr_phot=$snr_phot --add_noise --continuum_optimize \
-                        --zred=$zred --zred_disp=1e-3 \
-                        --tau=$tau --tage=$tage --logzsol=$logzsol --mass=$mass --dust2=$dust2 \
+
+# run the fit
+python specphot_demo.py $fit $model $mock --zred_disp=1e-3 \
+                        $data --snr_spec=$snr_spec --snr_phot=$snr_phot \
                         --outfile=output/mock_parametric_$tag

@@ -25,8 +25,10 @@ cd $MYSCRATCH/exspect/fitting
 filtersets=(oneband twoband optical opt_nir uv_to_nir uv_to_mir full)
 filterset=${filtersets[$SLURM_ARRAY_TASK_ID]}
 
-# model and data flags
+# model flags
 model="--add_neb --add_duste --complex_dust --free_duste"
+
+# data flags
 data="--snr_phot=20 --add_noise"
 
 # fitting flags
@@ -42,9 +44,10 @@ duste_umin=2
 duste_qpah=1
 fagn=0.05
 agn_tau=20
+mock="--logzsol=${logzsol} --logmass=${logmass} dust2=${dust2}"
+mock=$mock" --duste_umin=${duste_umin} --duste_qpah=${duste_qpah}"
+mock=$mock" --fagn=${fagn} --agn_tau=${agn_tau}"
 
 python nbands_demo.py $fit $model $data --filterset=$filterset \
-                      --zred=$zred \
-                      --nbins_sfh=$nbins_sfh --logzsol=$logzsol --logmass=$logmass --dust2=$dust2 \
-                      --duste_umin=$duste_umin --duste_qpah=$duste_qpah --fagn=$fagn --agn_tau=$agn_tau \
+                      $mock --zred=$zred --nbins_sfh=$nbins_sfh \
                       --outfile=output/nband_fit_$filterset
