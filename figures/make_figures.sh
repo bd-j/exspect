@@ -36,6 +36,9 @@ for f in $filtersets;
                            --fignum=nband_${f} --results_file=$rdir/nband_fit_$f.h5
 done
 
+# GCs
+python gc_dash --n_seds=$nseds --fignum=ggc1 --results_file=$rdir/ggc1
+
 # Photo-z
 python show_gnz11.py --n_sample=1000 --n_seds=$nseds --fignum=gnz11 \
                      --results_file=${rdir}/photoz_gnz11.h5
