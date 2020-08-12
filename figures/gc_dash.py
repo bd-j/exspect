@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-""" fig9.py - dashboard for individual fits to GGC spectra + photometry
+""" gc_dash.py - dashboard for individual fits to GGC spectra + photometry
 """
 
 import os, glob

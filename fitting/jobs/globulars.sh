@@ -1,3 +1,5 @@
+#!/bin/bash
+
 #SBATCH -J exspect_gcs
 #SBATCH -n 1 # Number of cores requested
 #SBATCH -N 1 # Ensure that all cores are on one machine
