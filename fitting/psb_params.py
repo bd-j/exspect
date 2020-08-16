@@ -16,9 +16,6 @@ from astropy.cosmology import WMAP9 as cosmo
 from prospect.likelihood import NoiseModel
 from prospect.likelihood.kernels import Uncorrelated
 
-# define user-specific paths and filter names
-apps = os.getenv('APPS')
-
 def build_obs(objname=92942, extra_phot=False,
               err_floor=0.05, **kwargs):
     """Load photometry and spectra
@@ -49,7 +46,7 @@ def build_obs(objname=92942, extra_phot=False,
 
     ### now spectra
     # load target list first
-    tloc = apps+'/prospector_alpha/data/spec-2101-53858-0220.fits'
+    tloc = '../data/spec-2101-53858-0220.fits'
     dat = fits.open(tloc)[1].data
 
     # generate observables
@@ -305,7 +302,7 @@ if __name__=='__main__':
     if args.debug:
         sys.exit()
 
-    hfile = apps+'/prospector_alpha/results/psb/psb_sdss_mcmc.h5'
+    hfile = 'psb_sdss_mcmc.h5'
     output = fit_model(obs, model, sps, noise, lnprobfn=lnprobfn, **run_params)
 
     writer.write_hdf5(hfile, run_params, model, obs,
