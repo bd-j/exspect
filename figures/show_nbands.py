@@ -108,6 +108,24 @@ def get_simple_prior(prior, xlim, num=1000):
     return xx, px
 
 
+def set_lims(caxes):
+    caxes[0].set_xlim(8.9, 11.4)
+    caxes[1].set_xlim(-14.9, -8.1)
+    caxes[2].set_xlim(-2, 0.18)
+    caxes[3].set_xlim(0.1, 13.7)
+
+    caxes[4].set_xlim(0, 4)
+    caxes[5].set_xlim(0, 5)
+    caxes[6].set_xlim(-1, 0.4)
+
+    caxes[7].set_xlim(0.5, 25)
+    caxes[8].set_xlim(0.5,7)
+    caxes[9].set_xlim(0.001, 0.10)
+
+    caxes[10].set_xlim(-5, 0.0)
+    caxes[11].set_xlim(5, 120)
+
+
 if __name__ == "__main__":
 
     pl.ion()
@@ -144,7 +162,7 @@ if __name__ == "__main__":
     tick_kwargs = {"labelsize": 10}
     pkwargs = dict(color=colorcycle[0], alpha=0.65)
     dkwargs = dict(mfc=colorcycle[3], marker="o", linestyle="", mec="black", markersize=10, mew=2)
-    rkwargs = dict(color=colorcycle[4], linestyle=":", linewidth=2)
+    rkwargs = dict(color=colorcycle[4], linestyle="--", linewidth=2)
     lkwargs = dict(color="black", marker="", linestyle="-", linewidth=2)
     tkwargs = dict(color="black", linestyle="--", linewidth=2, marker="")
 
@@ -182,6 +200,7 @@ if __name__ == "__main__":
         # Plot truth
         ax.axvline(truths[p], **tkwargs)
 
+    set_lims(caxes)
     if args.prior_samples > 0:
         spans = [ax.get_xlim() for ax in caxes.flat]
         show_priors(model, caxes.flat, spans, nsample=args.prior_samples,
@@ -198,7 +217,7 @@ if __name__ == "__main__":
     wc = 10**(4 * nufnu)
 
     owave, ophot, ounc = obs["phot_wave"], obs["maggies"], obs["maggies_unc"]
-    maxw = np.max(owave > 30e4) * 520e4 + np.max(owave < 30e4) * 30e4
+    maxw = np.max(owave > 10e4) * 520e4 + np.max(owave < 10e4) * 30e4
     if nufnu:
         _, ophot = to_nufnu(owave, ophot)
         owave, ounc = to_nufnu(owave, ounc)
@@ -233,8 +252,9 @@ if __name__ == "__main__":
 
     artists = [truth_sed, data, post]
     legends = ["True SED", "Observed Photometry", "Posterior SED"]
-    sax.legend(artists, legends, loc="lower right")
-    sax.text(0.65, 0.3, filters[filterset], transform=sax.transAxes, fontsize=22)
+    sax.legend(artists, legends, loc="lower left")
+    sax.text(0.58, 0.3, filters[filterset], transform=sax.transAxes,
+             verticalalignment="top", fontsize=20)
     [item.set_fontsize(22) for item in [sax.xaxis.label, sax.yaxis.label]]
 
     # --- Saving ---

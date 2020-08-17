@@ -30,7 +30,8 @@ python compare_mock_specphot.py  --prior_samples=$nprior --n_seds=0 \
 
 # nbands figure
 filtersets=(oneband twoband optical opt_nir uv_to_nir uv_to_mir full)
-for f in $filtersets;
+#for f in ${filtersets[@]}; do echo $f; done
+for f in ${filtersets[@]};
   do
      python show_nbands.py --prior_samples=$nprior --n_seds=$nseds \
                            --fignum=nband_${f} --results_file=$rdir/nband_fit_$f.h5

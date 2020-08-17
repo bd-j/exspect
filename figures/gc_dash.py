@@ -202,7 +202,7 @@ if __name__ == "__main__":
     lax.set_xlabel(r'$\lambda (\mu{\rm m})$')
     lax.set_ylabel(r'$\mathcal{C}\, (\lambda)$', fontsize=12)
     lax.ticklabel_format(axis='x', style='sci', scilimits=(-10, 10))
-    lax.text(0.58, 0.60, r"Calibration polynomial:"+"\n"+r"$F_\nu({\rm model}) \, = \, \mathcal{C}(\lambda) \cdot F_\nu({\rm intrinsic})$",
+    lax.text(0.58, 0.60, r"Calibration vector:"+"\n"+r"$F_\nu({\rm model}) \, = \, \mathcal{C}(\lambda) \cdot F_\nu({\rm intrinsic})$",
              transform=lax.transAxes)
 
     [ax.set_xlim(3300 / wc, 8700 / wc) for ax in [sax, rax, lax]]
