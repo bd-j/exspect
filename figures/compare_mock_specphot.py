@@ -15,6 +15,7 @@ import os, glob
 from argparse import ArgumentParser
 import numpy as np
 import matplotlib.pyplot as pl
+import matplotlib.ticker as ticker
 
 from prospect.io import read_results as reader
 from prospect.io.write_results import chain_to_struct, dict_to_struct
@@ -118,14 +119,14 @@ if __name__ == "__main__":
 
     # --- Legend stuff ---
     # --------------------
-    label_kwargs = {"fontsize": 14}
-    tick_kwargs = {"labelsize": 12}
+    label_kwargs = {"fontsize": 18}
+    tick_kwargs = {"labelsize": 16}
     pkwargs = dict(color=colorcycle[0], alpha=0.65)
     skwargs = dict(color=colorcycle[1], alpha=0.65)
     akwargs = dict(color=colorcycle[3], alpha=0.65)
     dkwargs = dict(color="gray", linestyle="-", linewidth=0.75, marker="")
     rkwargs = dict(color=colorcycle[4], linestyle=":", linewidth=2)
-    tkwargs = dict(color="gray", linestyle="-", linewidth=2.0, marker="o", mfc="k", mec="k")
+    tkwargs = dict(color="gray", linestyle="", linewidth=2.0, marker="o", mfc="k", mec="k")
     lkwargs = dict(color="k", linestyle="-", linewidth=1.25, marker="")
     mkwargs = dict(alpha=0.5, histtype="stepfilled")
     hkwargs = [pkwargs, skwargs, akwargs]
@@ -178,25 +179,27 @@ if __name__ == "__main__":
     ind_best = np.argmax(result["lnprobability"])
     pbest = result["chain"][ind_best, :]
 
+    renorm = 1/np.median(tspec)
+
     if args.n_seds > 0:
         # --- get samples ---
         raw_samples = sample_posterior(result["chain"], result["weights"], nsample=args.n_seds)
         sps = build_sps(**result["run_params"])
         sed_samples = [model.predict(p, obs=specphot, sps=sps) for p in raw_samples[:args.n_seds]]
-        pphot = np.array([sed[1] for sed in sed_samples])
-        pspec = np.array([sed[0] for sed in sed_samples])
+        pphot = np.array([sed[1]*renorm for sed in sed_samples])
+        pspec = np.array([sed[0]*renorm for sed in sed_samples])
         qq = np.percentile(pspec, [16, 50, 84], axis=0)
         spec_best, phot_best, mfrac_best = model.predict(pbest, obs=specphot, sps=sps)
-        sax.plot(specphot["wavelength"], spec_best, **skwargs)
+        sax.plot(specphot["wavelength"], spec_best * renorm, **skwargs)
 
-    sax.plot(specphot["wavelength"], specphot["spectrum"], **dkwargs)
-    sax.plot(specphot["wavelength"], tspec, **lkwargs)
+    m = specphot["mask"]
+    sax.plot(specphot["wavelength"][m], specphot["spectrum"][m] * renorm, **dkwargs)
+    sax.plot(specphot["wavelength"], tspec * renorm, **lkwargs)
 
-
-    sax.set_ylabel(r"Flux")
-    sax.set_xlabel(r"$\lambda_{\rm obs} \, (\AA)$")
+    sax.set_ylabel(r"Flux (Arbitrary", fontsize=18)
+    sax.set_xlabel(r"$\lambda_{\rm obs} \, (\AA)$", fontsize=18)
     miny = specphot["spectrum"].min() * 0.9
-    maxy = np.median(specphot["spectrum"]) * 5
+    maxy = np.median(specphot["spectrum"] * renorm) * 5
     sax.set_ylim(miny, maxy)
 
     sp = Line2D([], [], **lkwargs)

@@ -11,6 +11,7 @@ import os, glob
 from argparse import ArgumentParser
 import numpy as np
 import matplotlib.pyplot as pl
+import matplotlib.ticker as ticker
 
 from prospect.io import read_results as reader
 from prospect.io.write_results import chain_to_struct, dict_to_struct
@@ -104,12 +105,12 @@ if __name__ == "__main__":
 
     # --- Legend stuff ---
     # --------------------
-    label_kwargs = {"fontsize": 14}
-    tick_kwargs = {"labelsize": 12}
+    label_kwargs = {"fontsize": 16}
+    tick_kwargs = {"labelsize": 14}
 
     pkwargs = dict(color=colorcycle[0], alpha=0.65)
     hkwargs = dict(histtype="stepfilled", alpha=pkwargs["alpha"])
-    dkwargs = dict(color=colorcycle[3], linestyle="", linewidth=0.75, marker="o", mec="k")
+    dkwargs = dict(color="k", linestyle="", linewidth=1.5, mew=1.5, marker="o", mec="k", mfc="w")
     rkwargs = dict(color=colorcycle[4], linestyle=":", linewidth=2)
 
     tkwargs = dict(color="k", linestyle="--", linewidth=1.5, mfc="k", mec="k")
@@ -162,6 +163,7 @@ if __name__ == "__main__":
     if nufnu:
         _, ophot = to_nufnu(owave, ophot)
         owave, ounc = to_nufnu(owave, ounc)
+    renorm = 1 / np.mean(ophot)
 
     if args.n_seds > 0:
         # --- get samples ---
@@ -185,22 +187,24 @@ if __name__ == "__main__":
         else:
             swave = awave
 
-        violinplot([p for p in phot.T], owave, phot_width, ax=sax, **pkwargs)
-        sax.plot(twave, spec_true, **lkwargs,
+        violinplot([p for p in (phot * renorm).T], owave, phot_width, ax=sax, **pkwargs)
+        sax.plot(twave, spec_true * renorm, **lkwargs,
                  label=r"True spectrum")
                  #label=r"Highest probability spectrum ($z=${:3.2f})".format(chain[ind_best]["zred"][0]))
 
-    sax.errorbar(owave, ophot, ounc, color="k", linestyle="")
-    sax.plot(owave, ophot, **dkwargs)
+    sax.errorbar(owave, ophot * renorm, ounc * renorm, color="k", linestyle="", linewidth=2)
+    sax.plot(owave, ophot * renorm, **dkwargs)
     if nufnu:
-        sax.set_ylim(1.3e-13, 0.7e-12)
+        sax.set_ylim(1.3e-13 * renorm, 0.7e-12 * renorm)
     else:
-        sax.set_ylim(3e-9, 1e-7)
+        sax.set_ylim(3e-9 * renorm, 1e-7 * renorm)
     sax.set_xlim(minw / wc, maxw / wc)
     sax.set_xscale("log")
     sax.set_yscale("log")
-    sax.set_ylabel(r"$\nu f_\nu$", fontsize=16)
+    sax.set_ylabel(r"$\nu f_\nu$ (Arbitrary)", fontsize=18)
     sax.set_xticklabels([])
+    sax.set_yticks([0.4, 0.6, 1.0, 1.5])
+    sax.yaxis.set_major_formatter(ticker.StrMethodFormatter("{x:0.1f}"))
 
     # --- SED residuals ---
     # ---------------------
@@ -209,8 +213,11 @@ if __name__ == "__main__":
         rax.plot(owave, chi, **dkwargs)  #marker="o", linestyle="", color="black")
     rax.axhline(0, linestyle=":", color="black")
     rax.set_ylim(-2.8, 2.8)
-    rax.set_ylabel(r"$\chi_{\rm best}$", fontsize=14)
-    rax.set_xlabel(r"$\lambda_{\rm obs}$ ($\mu$m)", fontsize=16)
+    rax.set_ylabel(r"$\chi_{\rm best}$", fontsize=18)
+    rax.set_xlabel(r"$\lambda_{\rm obs}$ ($\mu$m)", fontsize=18)
+    wpos = [0.2, 0.5, 1.0, 1.5]
+    rax.set_xticks(wpos)
+    rax.xaxis.set_major_formatter(ticker.StrMethodFormatter("{x:0.1f}"))
 
     artists = [sp, data, post]
     legends = ["True Spectrum", "Mock photometry", "Posterior SED"]
