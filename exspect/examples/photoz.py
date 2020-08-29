@@ -169,6 +169,8 @@ def zred_to_agebins(zred=None, nbins_sfh=5, zmax=20.0, **extras):
 # Everything
 # ------------
 
+def build_noise(**kwargs):
+    return None, None
 
 def build_all(**kwargs):
 

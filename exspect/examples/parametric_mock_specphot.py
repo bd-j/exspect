@@ -300,7 +300,8 @@ def build_obs(dlambda_spec=2.0, wave_lo=3800, wave_hi=7000.,
 # -----------
 # Everything
 # ------------
-
+def build_noise(**extras):
+    return None, None
 
 def build_all(**kwargs):
 

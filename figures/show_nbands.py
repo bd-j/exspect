@@ -18,7 +18,7 @@ from prospect.io import read_results as reader
 from prospect.io.write_results import chain_to_struct, dict_to_struct
 
 from exspect.examples.nband import build_sps
-from exspect.plotting.utils import sample_prior, sample_posterior, sample_prior
+from exspect.plotting.utils import sample_prior, sample_posterior, get_simple_prior
 from exspect.plotting.sed import convolve_spec, to_nufnu
 from exspect.plotting.corner import marginal
 from exspect.plotting.sfh import nonpar_recent_sfr, nonpar_mwa
@@ -98,14 +98,6 @@ def show_priors(model, diagonals, spans, show=[], smooth=0.1, nsample=int(1e4),
         else:
             marginal(params[p], ax, span=spans[i], smooth=smooth[i],
                      color=color, histtype="step", peak=ax.get_ylim()[1], **linekwargs)
-
-
-def get_simple_prior(prior, xlim, num=1000):
-    xx = np.linspace(*xlim, num=num)
-    px = np.array([prior(x) for x in xx])
-    px = np.exp(px)
-    px /= px.max()
-    return xx, px
 
 
 def set_lims(caxes):

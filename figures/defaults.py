@@ -39,4 +39,3 @@ pretty = {"logzsol": r"$\log (Z_{\star}/Z_{\odot})$",
           "logtau": r"$\log(\tau)$ (Gyr)",
           "tage": r"Age (Gyr)",
           "ageprime": r"Age/$\tau$"}
-

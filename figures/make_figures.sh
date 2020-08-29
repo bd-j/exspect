@@ -19,7 +19,7 @@ mkdir -p paperfigures
 
 # Basic figure
 python basic_phot_mock.py --prior_samples=$nprior --n_seds=$nseds \
-                          --fignum=basic --phot_file=${rdir}/mock_parametric_phot.h5
+                          --fignum=basic --results_file=${rdir}/mock_parametric_phot.h5
 
 # compare photometry, spectroscopy
 python compare_mock_specphot.py  --prior_samples=$nprior --n_seds=0 \
