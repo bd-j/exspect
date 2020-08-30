@@ -58,7 +58,7 @@ class Plotter(FigureMaker):
     def agebins(self):
         return self.model.params["agebins"]
 
-    def convert(self):
+    def convert(self, chain):
         """Convert a chain (as structured ndarray) to structured array of derived
         parameters.
         """
@@ -67,22 +67,22 @@ class Plotter(FigureMaker):
                 "duste_umin", "duste_qpah", "duste_gamma",
                 "log_fagn", "agn_tau"]
 
-        sfh, sfh_label = construct_sfh_measure(self.chain, self.agebins)
+        sfh, sfh_label = construct_sfh_measure(chain, self.agebins)
         niter = len(sfh[0])
         cols += sfh_label
         dt = np.dtype([(c, np.float) for c in cols])
         params = np.zeros(niter, dtype=dt)
 
         for c in cols:
-            if c in self.chain.dtype.names:
-                params[c] = np.squeeze(self.chain[c])
+            if c in chain.dtype.names:
+                params[c] = np.squeeze(chain[c])
 
         # --- dust attenuation
-        params["av"] = np.squeeze(1.086 * self.chain["dust2"])
-        params["av_bc"] = params["av"] * np.squeeze(1 + self.chain["dust_ratio"])
+        params["av"] = np.squeeze(1.086 * chain["dust2"])
+        params["av_bc"] = params["av"] * np.squeeze(1 + chain["dust_ratio"])
 
         # --- agn ---
-        params["log_fagn"] = np.squeeze(np.log10(self.chain["fagn"]))
+        params["log_fagn"] = np.squeeze(np.log10(chain["fagn"]))
 
         # --- stellar ---
         for i, c in enumerate(sfh_label):
@@ -91,6 +91,7 @@ class Plotter(FigureMaker):
 
     def plot_all(self):
         self.make_axes()
+        self.styles()
         self.lkwargs["linewidth"] = 2
         self.tkwargs["marker"] = ""
         self.make_art()
@@ -131,9 +132,8 @@ class Plotter(FigureMaker):
         caxes[10].set_xlim(-5, 0.0)
         caxes[11].set_xlim(5, 120)
 
-    def plot_post(self, caxes):
-        truths = self.convert(dict_to_struct(self.obs['mock_params']),
-                              self.agebins)
+    def plot_post(self, caxes, lfactor=1.75):
+        truths = self.convert(dict_to_struct(self.obs['mock_params']))
 
         for i, p in enumerate(self.show):
             ax = caxes.flat[i]
@@ -143,11 +143,13 @@ class Plotter(FigureMaker):
             # Plot truth
             ax.axvline(truths[p], **self.tkwargs)
 
+        peak = np.ones(len(self.show)) * 0.96
+        peak[self.show.index("duste_gamma")] = lfactor
+        peak[self.show.index("agn_tau")] = lfactor
         self.set_lims(caxes)
         if self.prior_samples > 0:
             spans = [ax.get_xlim() for ax in caxes.flat]
-            self.show_priors(caxes.flat, spans, smooth=0.02,
-                             show=self.show, **self.rkwargs)
+            self.show_priors(caxes.flat, spans, peak=peak, smooth=0.02, **self.rkwargs)
 
         # --- prettify ---
         [ax.set_yticklabels([]) for ax in caxes.flat]
