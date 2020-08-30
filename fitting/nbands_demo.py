@@ -16,7 +16,7 @@ from prospect import prospect_args
 from prospect.fitting import fit_model
 from prospect.io import write_results as writer
 
-from exspect.examples.utils import build_mock
+from exspect.utils import build_mock
 
 # -------------
 # FILTERS

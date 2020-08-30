@@ -18,9 +18,9 @@ from prospect import prospect_args
 from prospect.fitting import fit_model
 from prospect.io import write_results as writer
 
-from exspect.examples.utils import build_mock
-from exspect.examples.utils import set_sdss_lsf, load_sdss
-from exspect.examples.utils import fit_continuum, eline_mask
+from exspect.utils import build_mock
+from exspect.utils import set_sdss_lsf, load_sdss
+from exspect.utils import fit_continuum, eline_mask
 
 
 # Here we are going to put together some filter names
@@ -298,32 +298,6 @@ def build_obs(dlambda_spec=2.0, wave_lo=3800, wave_hi=7000.,
         mock['mask'] = mock['mask'] & eline_mask(mock['wavelength'], lines * a, 9.0 * a)
 
     return mock
-
-# 3836.485,H 3835
-# 3869.86,[NeIII]3870
-# 3889.75,HeI 3889
-# 3890.166,H 3889
-# 3968.59,[NeIII]3968
-
-# 3971.198,H 3970
-# 4102.892,H delta 4102
-# 4341.692,H gamma 4340
-# 4472.735,HeI 4472
-# 4862.71,H beta 4861
-# 4960.295,[OIII]4960
-# 5008.24,[OIII]5007
-
-# 5877.249,HeI 5877
-
-# 6302.046,[OI]6302
-# 6549.86,[NII]6549
-# 6564.6,H alpha 6563
-# 6585.27,[NII]6585
-# 6679.995,HeI 6680
-# 6718.294,[SII]6717
-# 6732.673,[SII]6732
-# 7137.77,[ArIII]7138
-
 
 # -----------------
 # Noise Model

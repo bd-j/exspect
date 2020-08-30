@@ -215,3 +215,32 @@ def fit_continuum(wave, spec, normorder=6, nreject=1):
         good = good & ((1 - normed) < normed[good].std())
 
     return cal, lastgood
+
+
+def normalize_ggc_spec(obs, norm_band="bessell_B"):
+    """Normalize the spectrum to a photometric band
+    """
+    from sedpy.observate import getSED
+    from prospect.sources.constants import lightspeed, jansky_cgs
+
+    bands = list([f.name for f in obs['filters']])
+    norm_index = bands.index(norm_band)
+
+    synphot = getSED(obs['wavelength'], obs['spectrum'], obs['filters'])
+    synphot = np.atleast_1d(synphot)
+    # Factor by which the observed spectra should be *divided* to give you the
+    #  photometry (or the cgs apparent spectrum), using the given filter as
+    #  truth.  Alternatively, the factor by which the model spectrum (in cgs
+    #  apparent) should be multiplied to give you the observed spectrum.
+    norm = 10**(-0.4 * synphot[norm_index]) / obs['maggies'][norm_index]
+    wave = obs["wavelength"]
+    flambda_to_maggies = wave * (wave/lightspeed) / jansky_cgs / 3631
+    flambda_cgs = obs["spectrum"] / norm
+    maggies = flambda_cgs * flambda_to_maggies
+    obs["spectrum"] = maggies
+    obs["unc"] = obs["unc"] / norm * flambda_to_maggies
+    if "sky" in obs:
+        obs["sky"] = obs["sky"] / norm * flambda_to_maggies
+
+    obs["norm_band"] = norm_band
+    return obs

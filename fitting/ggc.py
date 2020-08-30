@@ -20,8 +20,8 @@ from prospect.fitting import fit_model
 from prospect.io import write_results as writer
 from prospect.sources.constants import cosmo
 
-from exspect.examples.utils import set_ggc_lsf
-from exspect.examples.utils import fit_continuum, eline_mask
+from exspect.utils import set_ggc_lsf
+from exspect.utils import fit_continuum, eline_mask
 
 
 # Here we are going to put together some filter names
