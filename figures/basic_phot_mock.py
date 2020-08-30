@@ -116,6 +116,7 @@ class Plotter(FigureMaker):
         # --- posterior samples ---
         if self.n_seds > 0:
             self.make_seds()
+            self.spec_wave = self.sps.wavelengths * (1 + self.model.params["zred"])
             ckw = dict(minw=minw, maxw=maxw, R=500*2.35, nufnu=self.nufnu)
             if self.nufnu:
                 swave, spec_best = convolve_spec(self.spec_wave, [self.spec_best], **ckw)

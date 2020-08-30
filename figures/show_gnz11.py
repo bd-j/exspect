@@ -14,12 +14,12 @@ from matplotlib.patches import Patch
 from matplotlib import ticker
 
 from prospect.plotting import FigureMaker, chain_to_struct, dict_to_struct
-from prospect.plotting import boxplot, get_simple_prior, sample_prior, sample_posterior
+from prospect.plotting import boxplot, get_simple_prior
 from prospect.plotting.corner import allcorner, marginal, quantile, _quantile
 from prospect.plotting.sed import to_nufnu, convolve_spec
 from exspect.plotting.sfh import ratios_to_sfrs, sfh_quantiles
 
-from exspect.examples.photoz import zred_to_agebins, build_sps
+from exspect.examples.photoz import zred_to_agebins, zlogsfr_ratios_to_masses
 from defaults import pretty, plot_defaults, colorcycle
 
 
@@ -206,20 +206,8 @@ if __name__ == "__main__":
     parser.add_argument("--n_seds", type=int, default=0)
     args = parser.parse_args()
 
-    plotter = Plotter(**vars(args))
-    #print(plotter.nufnu)
-    plotter.sps = build_sps(**plotter.result["run_params"])
-    #plotter.plot_all()
-
-    plotter.n_seds = 0
-    plotter.make_seds()
-    ind, spec = plotter.ind_best, plotter.spec_best.copy()
-    qbest = plotter.result["chain"][ind, :]
-
-    plotter.make_seds()
-    ind2, spec2 = plotter.ind_best, plotter.spec_best.copy()
-    qbest2 = plotter.result["chain"][ind, :]
-
+    plotter = Plotter(nufnu=False, **vars(args))
+    plotter.plot_all()
 
     # --- Saving ---
     # --------------
