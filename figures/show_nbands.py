@@ -169,12 +169,11 @@ class Plotter(FigureMaker):
 
         truespec = np.atleast_2d(self.obs["true_spectrum"])
 
+        # --- posterior samples ---
         if args.n_seds > 0:
-            # --- posterior samples ---
             self.make_seds()
             self.spec_wave = self.sps.wavelengths * (1 + self.model.params["zred"])
             ckw = dict(minw=minw, maxw=maxw, R=500*2.35, nufnu=self.nufnu)
-
             swave, sspec = convolve_spec(self.spec_wave, self.spec_samples, **ckw)
             twave, tspec = convolve_spec(self.spec_wave, truespec, **ckw)
 
@@ -197,13 +196,13 @@ class Plotter(FigureMaker):
 
     def make_legend(self, sax):
         # posterior
-        artists = self.art["truth"], self.art["prior"], self.art["phot_post"]
+        artists = self.art["truth"], self.art["prior"], self.art["posterior"]
         legends = ["True Parameters", "Prior", "Posterior"]
         self.fig.legend(artists, legends, (0.78, 0.1), frameon=True)
 
         # sed
         filterset = self.result["run_params"]["filterset"]
-        artists = [self.art["spec_data"], self.art["phot_data"], self.art["phot_post"]]
+        artists = [self.art["spec_data"], self.art["phot_data"], self.art["posterior"]]
         legends = ["True SED", "Observed Photometry", "Posterior SED"]
         sax.legend(artists, legends, loc="lower left")
         sax.text(0.58, 0.3, filters[filterset], transform=sax.transAxes,

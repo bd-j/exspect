@@ -14,7 +14,9 @@ from copy import deepcopy
 import os, glob
 from argparse import ArgumentParser
 import numpy as np
+
 import matplotlib.pyplot as pl
+from matplotlib import rcParams
 import matplotlib.ticker as ticker
 
 from prospect.plotting import FigureMaker, dict_to_struct
@@ -40,7 +42,7 @@ def multispan(params, weights, show):
         spans.append(get_spans(None, x, weights=w))
         xx.append(x)
     spans = np.array(spans)
-    span = spans[:,:, 0].min(axis=0), spans[:,:, 1].max(axis=0)
+    span = spans[:, :, 0].min(axis=0), spans[:, :, 1].max(axis=0)
     span = tuple(np.array(span).T)
     return span, xx
 
@@ -56,28 +58,11 @@ class Plotter(FigureMaker):
         self.fig, self.paxes = pl.subplots(len(show), len(show), figsize=(15, 12.5))
         self.sax = self.fig.add_subplot(4, 2, 2)
 
-    # --- Legend stuff ---
-    # --------------------
-    # label_kwargs = {"fontsize": 18}
-    # tick_kwargs = {"labelsize": 16}
-    # pkwargs = dict(color=colorcycle[0], alpha=0.65)
-    # skwargs = dict(color=colorcycle[1], alpha=0.65)
-    # akwargs = dict(color=colorcycle[3], alpha=0.65)
-    # dkwargs = dict(color="gray", linestyle="-", linewidth=0.75, marker="")
-    # rkwargs = dict(color=colorcycle[4], linestyle=":", linewidth=2)
-    # tkwargs = dict(color="gray", linestyle="", linewidth=2.0, marker="o", mfc="k", mec="k")
-    # lkwargs = dict(color="k", linestyle="-", linewidth=1.25, marker="")
-    # mkwargs = dict(alpha=0.5, histtype="stepfilled")
-    # hkwargs = [pkwargs, skwargs, akwargs]
-
-    # data = Line2D([], [], **dkwargs)
-    # truth = Line2D([], [], **tkwargs)
-    # posts = [Patch(**kwargs) for kwargs in hkwargs]
-    # prior = Line2D([], [], **rkwargs)
-
     def plot_corner(self, paxes, spans):
+        color = self.pkwargs["color"]
+        mkwargs = dict(alpha=0.5, histtype="stepfilled")
+        kwargs = dict(alpha=self.pkwargs["alpha"], histtype="stepfilled")
 
-        # FIXME: need to figure out kwargs for corner
         truths = self.convert(dict_to_struct(self.obs["mock_params"]))
         tvec = np.array([truths[p] for p in self.show])
         labels = [pretty.get(p, p) for p in self.show]
@@ -88,26 +73,25 @@ class Plotter(FigureMaker):
                        hist_kwargs=kwargs, hist2d_kwargs=mkwargs)
         scatter(tvec, paxes, zorder=10, color=self.tkwargs["mfc"], edgecolor="k")
         prettify_axes(paxes, labels, label_kwargs=self.label_kwargs, tick_kwargs=self.tick_kwargs)
-        if args.prior_samples > 0:
-            self.show_priors(np.diag(paxes), spans, nsample=args.prior_samples,
-                             show=self.show, smooth=0.1, **self.rkwargs)
+        if self.prior_samples > 0:
+            self.show_priors(np.diag(paxes), spans, smooth=0.05, **self.rkwargs)
 
-    def convert(self):
+    def convert(self, chain):
         """compute quantities from a structured chain (or dictionary)
         """
         cols = ["av", "logzsol"]
-        sfh, sfh_label = construct_sfh_measure(self.chain, None)
+        sfh, sfh_label = construct_sfh_measure(chain, None)
         niter = len(sfh[0])
         cols += sfh_label
         dt = np.dtype([(c, np.float) for c in cols])
         params = np.zeros(niter, dtype=dt)
 
         for c in cols:
-            if c in self.chain.dtype.names:
-                params[c] = np.squeeze(self.chain[c])
+            if c in chain.dtype.names:
+                params[c] = np.squeeze(chain[c])
 
         # --- dust attenuation
-        params["av"] = np.squeeze(1.086 * self.chain["dust2"])
+        params["av"] = np.squeeze(1.086 * chain["dust2"])
 
         # --- stellar ---
         for i, c in enumerate(sfh_label):
@@ -138,19 +122,18 @@ class Plotter(FigureMaker):
         sax.plot(wave, tspec * renorm, **self.lkwargs)
 
         # --- prettify ---
-        sax.set_ylabel(r"Flux (Arbitrary", fontsize=18)
+        sax.set_ylabel(r"Flux (Arbitrary)", fontsize=18)
         sax.set_xlabel(r"$\lambda_{\rm obs} \, (\AA)$", fontsize=18)
         miny, maxy = (data * renorm).min() * 0.9, np.median(data * renorm) * 5
         sax.set_ylim(miny, maxy)
 
-    def make_legend(self, fig):
-        sp = Line2D([], [], **lkwargs)
+    def make_legend(self, fig, eleg=[], eart=[], loc=(0.91, 0.62), fontsize=14):
+        legends = ["True Spectrum\n(Continuum Normalized)", "Mock Data", "True Parameters", "Prior"]
+        artists = [self.art["spec_data"], self.art["phot_data"], self.art["truth"], self.art["prior"]]
+        legends += eleg
+        artists += eart
 
-        rtypes = ["Only Photometry", "Only Spectroscopy", "Photometry & Spectroscopy"]
-        artists = [sp, data, truth, prior] + posts
-        legends = ["True Spectrum\n(Continuum Normalized)", "Mock Data", "True Parameters", "Prior"] + rtypes
-        pfig.subplots_adjust(hspace=0.1, wspace=0.1)
-        pfig.legend(artists, legends, loc='upper right', bbox_to_anchor=(0.9, 0.6), frameon=True, fontsize=14)
+        fig.legend(artists, legends, loc='upper right', bbox_to_anchor=loc, frameon=True, fontsize=fontsize)
 
 
 if __name__ == "__main__":
@@ -165,19 +148,35 @@ if __name__ == "__main__":
     parser.add_argument("--n_seds", type=int, default=0)
     args = parser.parse_args()
 
+    show = Plotter.show
+
+    # instantiate the plotters
     plotters = [Plotter(results_file=f, **vars(args)) for f in
                 [args.phot_file, args.spec_file, args.specphot_file]]
 
-    show = Plotter.show
-    # set limits for the plots
+    # make styles with different color for each plotter
+    [p.styles() for p in plotters]
+    cind = [0, 1, 3]
+    for i, p in enumerate(plotters):
+        p.pkwargs["color"] = colorcycle[cind[i]]
+        p.dkwargs = dict(color="gray", linestyle="-", linewidth=0.75, marker="")
+        p.make_art()
+        if i < 2:
+            p.prior_samples = 0
+
+    # get limits for the plots
     spans, xx = multispan([p.parchain for p in plotters], [p.weights for p in plotters], show)
 
     # make and fill figures
-    fig, paxes = pl.subplots(len(show), len(show), figsize=(15, 12.5))
+    fig, paxes = pl.subplots(len(show), len(show), figsize=(9.6, 8.25))
     sax = fig.add_subplot(4, 2, 2)
     [p.plot_corner(paxes, spans) for p in plotters]
     plotters[-1].plot_spectrum(sax)
-    plotters[-1].make_legend(fig)
+
+    leg = ["Only Photometry", "Only Spectroscopy", "Phot. & Spec."]
+    art = [p.art["posterior"] for p in plotters]
+    plotters[-1].make_legend(fig, eleg=leg, eart=art, fontsize=12)
+    fig.subplots_adjust(wspace=0.08, hspace=0.08)
 
 
     # --- Saving ----

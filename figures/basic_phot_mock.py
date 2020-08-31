@@ -175,7 +175,7 @@ class Plotter(FigureMaker):
             artists += [self.art["sed_post"]]
             legends += ["Posterior SED"]
 
-        artists += [self.art["truth"], self.art["prior"], self.art["phot_post"]]
+        artists += [self.art["truth"], self.art["prior"], self.art["posterior"]]
         legends += ["True Parameters", "Prior", "Posterior"]
         self.fig.legend(artists, legends, loc=(0.81, 0.45), frameon=True, fontsize=14)
 

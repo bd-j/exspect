@@ -31,9 +31,9 @@ class Plotter(FigureMaker):
     show = ["logzsol", "dust2", "logmass", "gas_logu", "dust_index", "igm_factor"]
     phot_samples = None
 
-    def build_sps(self):
-        print("building sps")
-        self.sps = build_sps(**self.result["run_params"])
+    #def build_sps(self):
+    #    print("building sps")
+    #    self.sps = build_sps(**self.result["run_params"])
 
     def plot_all(self):
         self.make_axes()
@@ -149,7 +149,7 @@ class Plotter(FigureMaker):
         zax.set_xlabel("Redshift")
         zax.set_ylabel("Probability")
         zax.axvline(zbest, label=r"MAP redshift", linestyle="dashed", color=self.pkwargs["color"])
-        zax.axvline(11.09, label=r"Grism redshift (O16)", **self.tkwargs)
+        zax.axvline(11.09, label=r"Grism redshift (O16; $z=11.09$)", **self.tkwargs)
         zax.legend(loc=(0.08, 0.2), fontsize=10)
 
     def plot_posteriors(self, paxes):

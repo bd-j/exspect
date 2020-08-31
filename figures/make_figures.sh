@@ -41,5 +41,5 @@ done
 python gc_dash --n_seds=$nseds --fignum=ggc1 --results_file=$rdir/ggc1
 
 # Photo-z
-python show_gnz11.py --n_sample=1000 --n_seds=$nseds --fignum=gnz11 \
+python show_gnz11.py --prior_samples=1000 --n_seds=$nseds --fignum=gnz11 \
                      --results_file=${rdir}/photoz_gnz11.h5
