@@ -7,7 +7,6 @@ This script is intended to show a corner plot of the posterior PDF and the
 quality of the fit of a simple parameteric model to mock broadband photometry.
 """
 
-import os, glob
 from argparse import ArgumentParser
 import numpy as np
 
@@ -66,8 +65,10 @@ class Plotter(FigureMaker):
     def plot_all(self):
         self.make_axes()
         self.styles()
+        self.plot_corner(self.caxes)
+        if self.n_seds >= 0:
+            self.make_seds()
         self.plot_sed(self.sax, self.rax)
-        self.plot_posteriors(self.caxes)
         self.make_legend()
 
     def make_axes(self):
@@ -77,7 +78,7 @@ class Plotter(FigureMaker):
         self.sax = self.fig.add_axes([0.55, 0.75, 0.96-0.55, 0.96-0.75])
         self.rax = self.fig.add_axes([0.55, 0.65, 0.96-0.55, 0.75-0.65], sharex=self.sax)
 
-    def plot_posteriors(self, caxes):
+    def plot_corner(self, caxes):
         """Make a corner plot of selected parameters
         """
         xx = np.array([self.parchain[p] for p in self.show])
@@ -100,11 +101,13 @@ class Plotter(FigureMaker):
             self.show_priors(np.diag(caxes), spans, smooth=0.05, **self.rkwargs)
 
     def plot_sed(self, sax, rax):
-        nufnu = self.nufnu
+        """Inset plot of SED
+        """
         wc = 10**(4 * self.nufnu)
 
         # --- Data ---
-        owave, ophot, ounc = self.obs["phot_wave"], self.obs["maggies"], self.obs["maggies_unc"]
+        ophot, ounc = self.obs["maggies"], self.obs["maggies_unc"]
+        owave = np.array([f.wave_effective for f in self.obs["filters"]])
         phot_width = np.array([f.effective_width for f in self.obs["filters"]])
         maxw, minw = np.max(owave + phot_width) * 1.02, np.min(owave - phot_width) / 1.02
         phot_width /= wc
@@ -115,7 +118,6 @@ class Plotter(FigureMaker):
 
         # --- posterior samples ---
         if self.n_seds > 0:
-            self.make_seds()
             self.spec_wave = self.sps.wavelengths * (1 + self.model.params["zred"])
             ckw = dict(minw=minw, maxw=maxw, R=500*2.35, nufnu=self.nufnu)
             if self.nufnu:
@@ -148,7 +150,7 @@ class Plotter(FigureMaker):
         sax.plot(owave, ophot * renorm, **self.dkwargs)
 
         # --- prettify ---
-        if nufnu:
+        if self.nufnu:
             sax.set_ylim(1.3e-13 * renorm, 0.7e-12 * renorm)
         else:
             sax.set_ylim(3e-9 * renorm, 1e-7 * renorm)

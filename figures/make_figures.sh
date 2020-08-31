@@ -38,7 +38,7 @@ for f in ${filtersets[@]};
 done
 
 # GCs
-python gc_dash --n_seds=$nseds --fignum=ggc1 --results_file=$rdir/ggc1
+python gc_dash.py --n_seds=$nseds --fignum=ggc1 --results_file=$rdir/ggc1
 
 # Photo-z
 python show_gnz11.py --prior_samples=1000 --n_seds=$nseds --fignum=gnz11 \

@@ -17,7 +17,7 @@ from prospect.plotting import FigureMaker, chain_to_struct, dict_to_struct
 from prospect.plotting import boxplot, get_simple_prior
 from prospect.plotting.corner import allcorner, marginal, quantile, _quantile
 from prospect.plotting.sed import to_nufnu, convolve_spec
-from exspect.plotting.sfh import ratios_to_sfrs, sfh_quantiles
+from prospect.plotting.sfh import ratios_to_sfrs, sfh_quantiles
 
 from exspect.examples.photoz import zred_to_agebins, zlogsfr_ratios_to_masses
 from defaults import pretty, plot_defaults, colorcycle
@@ -44,8 +44,8 @@ class Plotter(FigureMaker):
         self.plot_zred(self.zax)
         self.plot_posteriors(self.paxes)
         self.plot_sfh(self.hax)
-        #if self.n_seds > 0:
-        #    self.make_seds()
+        if self.n_seds >= 0:
+            self.make_seds()
         self.plot_sed(self.sax, self.rax)
 
     def make_axes(self):
@@ -78,8 +78,6 @@ class Plotter(FigureMaker):
 
         # --- posterior samples ---
         if self.n_seds > 0:
-            #if self.phot_samples is None:
-            self.make_seds()
             self.spec_wave = self.sps.wavelengths * (1 + zbest)
             ckw = dict(minw=minw, maxw=maxw, R=500*2.35, nufnu=self.nufnu)
             if self.nufnu:
