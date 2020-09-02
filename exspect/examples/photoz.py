@@ -20,7 +20,7 @@ def build_sps(zcontinuous=1, compute_vega_mags=False, **extras):
     return sps
 
 
-def zred_to_agebins(zred=None, nbins_sfh=5, zmax=20.0, **extras):
+def zred_to_agebins(zred=None, nbins_sfh=5, zmax=30.0, **extras):
     """Construct `nbins_sfh` bins in lookback time from 0 to age(zmax).  The
     first bin goes from 0-10 Myr, the rest are evenly spaced in log time
     """
