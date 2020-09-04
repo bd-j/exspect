@@ -20,7 +20,7 @@ from prospect.plotting import boxplot, get_simple_prior, sample_prior, sample_po
 from prospect.plotting.corner import allcorner, marginal, get_spans, _quantile
 from prospect.plotting.sed import to_nufnu, convolve_spec
 
-from exspect.examples.parametric_mock_specphot import build_sps
+#from exspect.examples.parametric_mock_specphot import build_sps
 from defaults import pretty, plot_defaults, colorcycle
 
 rcParams = plot_defaults(rcParams)
@@ -98,7 +98,7 @@ class Plotter(FigureMaker):
 
         # plot priors
         if self.prior_samples > 0:
-            self.show_priors(np.diag(caxes), spans, smooth=0.05, **self.rkwargs)
+            self.show_priors(np.diag(caxes), spans, smooth=0.1, **self.rkwargs)
 
     def plot_sed(self, sax, rax):
         """Inset plot of SED
@@ -135,7 +135,7 @@ class Plotter(FigureMaker):
             self.bkwargs = dict(alpha=0.8,
                                 facecolor=self.pkwargs["color"], edgecolor="k")
             self.art["sed_post"] = Patch(**self.bkwargs)
-            widths = 0.05 * owave  # phot_width
+            widths = 0.1 * owave  # phot_width
             boxplot((phot * renorm).T, owave, widths, ax=sax, **self.bkwargs)
             sax.plot(twave, spec_true * renorm, **self.lkwargs, label=r"True spectrum")
 

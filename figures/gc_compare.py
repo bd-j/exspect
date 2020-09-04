@@ -61,7 +61,7 @@ class Plotter:
             if n == 'NGC104':
                 n = 'NGC0104'
             inds = [i for i, g in enumerate(lnames) if n in str(g)]
-            print(n, inds)
+            #print(n, inds)
             if len(inds) == 1:
                 out[k] = lit[inds[0]]
                 oinds.append(n)

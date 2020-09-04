@@ -28,8 +28,8 @@ python compare_mock_specphot.py  --prior_samples=$nprior --n_seds=0 \
                                  --spec_file=${rdir}/mock_parametric_spec.h5 \
                                  --specphot_file=${rdir}/mock_parametric_specphot.h5
 
-# nbands figure
-filtersets=(oneband twoband optical opt_nir uv_to_nir uv_to_mir full)
+# nbands figure # twoband optical opt_nir uv_to_nir uv_to_mir full)
+filtersets=(oneband full)
 #for f in ${filtersets[@]}; do echo $f; done
 for f in ${filtersets[@]};
   do
@@ -38,7 +38,7 @@ for f in ${filtersets[@]};
 done
 
 # GCs
-python gc_dash.py --n_seds=$nseds --fignum=ggc1 --results_file=$rdir/ggc1
+python gc_dash.py --n_seds=$nseds --fignum=ggc1 --results_file=$rdir/ggc1.h5
 
 # GC comparison
 python gc_compare.py --fignum=ggc_all

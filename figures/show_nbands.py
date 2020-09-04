@@ -94,6 +94,7 @@ class Plotter(FigureMaker):
         self.styles()
         self.lkwargs["linewidth"] = 2
         self.tkwargs["marker"] = ""
+        self.dkwargs["markersize"] = 10
         self.make_art()
 
         self.plot_post(self.caxes)
@@ -205,7 +206,7 @@ class Plotter(FigureMaker):
         artists = [self.art["spec_data"], self.art["phot_data"], self.art["posterior"]]
         legends = ["True SED", "Observed Photometry", "Posterior SED"]
         sax.legend(artists, legends, loc="lower left")
-        sax.text(0.58, 0.3, filters[filterset], transform=sax.transAxes,
+        sax.text(0.5, 0.3, filters[filterset], transform=sax.transAxes,
                  verticalalignment="top", fontsize=20)
         [item.set_fontsize(22) for item in [sax.xaxis.label, sax.yaxis.label]]
 

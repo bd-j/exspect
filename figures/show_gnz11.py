@@ -174,7 +174,7 @@ class Plotter(FigureMaker):
         tlook = 10**agebins / 1e9
         tvec = np.exp(np.linspace(np.log(max(tlook.min(), 0.001)), np.log(tlook.max()), nt))
         # -- shrink the bins to get a prettier SFH ---
-        #tlook *= np.array([1.05, 0.95])
+        tlook *= np.array([1.02, 0.98])
         sq = sfh_quantiles(tvec, tlook, sfh_samples, self.weights, q=[16, 50, 84])
 
         # --- plot SFH ---

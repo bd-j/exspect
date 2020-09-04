@@ -20,16 +20,18 @@ from prospect.fitting import fit_model
 from prospect.io import write_results as writer
 from prospect.sources.constants import cosmo
 
-from exspect.utils import set_ggc_lsf
-from exspect.utils import fit_continuum, eline_mask
-
+try:
+    from exspect.utils import set_ggc_lsf
+    from exspect.utils import fit_continuum, eline_mask
+except(ImportError):
+    pass
 
 # Here we are going to put together some filter names
 # All these filters are available in sedpy.  If you want to use other filters,
 # add their transmission profiles to sedpy/sedpy/data/filters/ with appropriate
 # names (and format)
 galex = ['galex_FUV', 'galex_NUV']
-sdss = ['sdss_{0}0'.format(b) for b in ['g','r','i','z']]
+sdss = ['sdss_{0}0'.format(b) for b in "griz"]
 twomass = ['twomass_{}'.format(b) for b in ['J', 'H', 'Ks']]
 bessell = ['bessell_{}'.format(b) for b in "UBVRI"]
 

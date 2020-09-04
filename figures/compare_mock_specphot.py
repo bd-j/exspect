@@ -23,7 +23,7 @@ from prospect.plotting import FigureMaker, dict_to_struct
 from prospect.plotting.corner import marginal, scatter, get_spans, corner, prettify_axes
 from exspect.plotting.sed import to_nufnu, convolve_spec
 
-from exspect.examples.parametric_mock_specphot import build_sps
+#from exspect.examples.parametric_mock_specphot import build_sps
 from defaults import pretty, plot_defaults, colorcycle
 
 
