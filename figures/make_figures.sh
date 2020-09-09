@@ -14,12 +14,12 @@ mkdir -p paperfigures
 # Inferences (best fit, PDFs, etc) have *color*
 #  - use different colors for photometry, spectrum, phot + spec
 # True input values are *black*
-# Data (mock or real) is *[color]*
+# Data (mock or real) is black/gray
 
 
 # Basic figure
 python basic_phot_mock.py --prior_samples=$nprior --n_seds=$nseds \
-                          --fignum=basic --phot_file=${rdir}/mock_parametric_phot.h5
+                          --fignum=basic --results_file=${rdir}/mock_parametric_phot.h5
 
 # compare photometry, spectroscopy
 python compare_mock_specphot.py  --prior_samples=$nprior --n_seds=0 \
@@ -29,7 +29,8 @@ python compare_mock_specphot.py  --prior_samples=$nprior --n_seds=0 \
                                  --specphot_file=${rdir}/mock_parametric_specphot.h5
 
 # nbands figure
-filtersets=(oneband twoband optical opt_nir uv_to_nir uv_to_mir full)
+# filtersets=(oneband twoband optical opt_nir uv_to_nir uv_to_mir full)
+filtersets=(oneband full)
 #for f in ${filtersets[@]}; do echo $f; done
 for f in ${filtersets[@]};
   do
@@ -38,8 +39,15 @@ for f in ${filtersets[@]};
 done
 
 # GCs
-python gc_dash --n_seds=$nseds --fignum=ggc1 --results_file=$rdir/ggc1
+python gc_dash.py --n_seds=$nseds --fignum=ggc1 --results_file=$rdir/ggc1.h5
+
+# GC comparison
+python gc_compare.py --fignum=ggc_all
 
 # Photo-z
-python show_gnz11.py --n_sample=1000 --n_seds=$nseds --fignum=gnz11 \
+python show_gnz11.py --prior_samples=$nprior --n_seds=$nseds --fignum=gnz11 \
                      --results_file=${rdir}/photoz_gnz11.h5
+
+# SDSS PSB
+python plot_psb_sdss.py --prior_samples=$nprior --n_seds=$nseds --fignum=sdss_psb
+                        --results_file=${rdir}/psb_results/psb_sdss_mcmc.h5

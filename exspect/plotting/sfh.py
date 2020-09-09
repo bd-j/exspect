@@ -6,8 +6,9 @@ from scipy.special import gamma, gammainc
 
 from prospect.sources.constants import cosmo
 from .utils import step
+from .corner import quantile
 
-__all__ = ["params_to_sfh",
+__all__ = ["params_to_sfh", "sfh_quantiles",
            "parametric_cmf", "parametric_mwa", "parametric_sfr",
            "ratios_to_sfrs", "sfh_to_cmf", "nonpar_mwa", "nonpar_recent_sfr"]
 
@@ -36,6 +37,17 @@ def params_to_sfh(params, time=None, agebins=None):
         lookback = 10**(agebins-9)
 
     return lookback, sfhs, cmfs
+
+
+def sfh_quantiles(tvec, bins, sfrs, weights=None, q=[16, 50, 84]):
+    tt = bins.reshape(bins.shape[0], -1)
+    ss = np.array([sfrs, sfrs]).T.reshape(bins.shape[0], -1)
+    sf = np.array([np.interp(tvec, t, s, left=0, right=0) for t, s in zip(tt, ss)])
+    if weights is not None:
+        qq = quantile(sf.T, q=np.array(q)/100., weights=weights)
+    else:
+        qq = np.percentile(sf, axis=0, q=q)
+    return qq
 
 
 def parametric_cmf(tau=4, tage=13.7, time=None):

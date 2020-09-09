@@ -75,6 +75,7 @@ def build_model(zmean=-1, zdisp=None, zmax=20, nbins_sfh=6,
     # add redshift scaling to agebins, such that there is one 0-10 Myr bin and the
     # rest are evenly spaced in log(age) up to the age of the universe at that redshift
     model_params["agebins"]["depends_on"] = zred_to_agebins
+    model_params["mass"]["depends_on"] = zlogsfr_ratios_to_masses
 
     # --- We *are* fitting for redshift ---
     model_params["zred"]["isfree"] = True
@@ -132,6 +133,22 @@ def zred_to_agebins(zred=None, nbins_sfh=5, zmax=20.0, **extras):
     agebins = np.array([agelims[:-1], agelims[1:]])
     return agebins.T
 
+
+def zlogsfr_ratios_to_masses(logmass=None, logsfr_ratios=None, zred=None,
+                             **extras):
+    """This converts from an array of log_10(SFR_j / SFR_{j+1}) and a value of
+    log10(\Sum_i M_i) to values of M_i.  j=0 is the most recent bin in lookback
+    time; it incorporates changes in the agebins due to changing redshift.
+    """
+    agebins = zred_to_agebins(zred, **extras)
+    nbins = agebins.shape[0]
+    sratios = 10**np.clip(logsfr_ratios, -100, 100)  # numerical issues...
+    dt = (10**agebins[:, 1] - 10**agebins[:, 0])
+    coeffs = np.array([ (1. / np.prod(sratios[:i])) * (np.prod(dt[1: i+1]) / np.prod(dt[: i]))
+                        for i in range(nbins)])
+    m1 = (10**logmass) / coeffs.sum()
+
+    return m1 * coeffs
 
 # -----------------
 # Noise Model

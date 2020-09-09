@@ -34,9 +34,10 @@ pretty = {"logzsol": r"$\log (Z_{\star}/Z_{\odot})$",
           "log_fagn": r"$\log({\rm f}_{\rm AGN})$",
           "agn_tau": r"$\tau_{\rm AGN}$",
           "mwa": r"$\langle t \rangle_M$ (Gyr)",
-          "ssfr": r"$\log ({\rm sSFR})$ $({\rm M}_\odot/{\rm yr}$",
+          "ssfr": r"$\log ({\rm sSFR})$ $({\rm yr}^{-1})$",
+          "logsfr": r'$\log({\rm SFR})$ $({\rm M}_{\odot}/{\rm yr}$)',
           "tau": r"$\tau$ (Gyr)",
           "logtau": r"$\log(\tau)$ (Gyr)",
           "tage": r"Age (Gyr)",
-          "ageprime": r"Age/$\tau$"}
-
+          "ageprime": r"Age/$\tau$",
+          "sigma_smooth": r"$\sigma_v$ (km/s)"}

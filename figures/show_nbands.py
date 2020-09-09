@@ -7,20 +7,17 @@ This script is intended to show some posteriors and the SED for a fit to a
 variable number of photometric bands
 """
 
-
-import os, glob
 from argparse import ArgumentParser
 import numpy as np
+
 import matplotlib.pyplot as pl
 from matplotlib import gridspec, rcParams
+from matplotlib import ticker
 
-from prospect.io import read_results as reader
-from prospect.io.write_results import chain_to_struct, dict_to_struct
-
-from exspect.examples.nband import build_sps
-from exspect.plotting.utils import sample_prior, sample_posterior, sample_prior
-from exspect.plotting.sed import convolve_spec, to_nufnu
-from exspect.plotting.corner import marginal
+from prospect.plotting import FigureMaker, chain_to_struct, dict_to_struct
+from prospect.plotting import boxplot
+from prospect.plotting.corner import marginal
+from prospect.plotting.sed import to_nufnu, convolve_spec
 from exspect.plotting.sfh import nonpar_recent_sfr, nonpar_mwa
 
 from defaults import pretty, plot_defaults, colorcycle
@@ -41,38 +38,6 @@ filters = {"oneband": "\nSDSS: $r$",
            "full": "\n".join([galex, sdss, tmass, wise, herschel])}
 
 
-def convert(chain, agebins):
-    """Convert a chain (as structured ndarray) to structured array of derived
-    parameters.
-    """
-    cols = ["logmass", "logzsol", "gas_logu", "gas_logz",
-            "av", "av_bc", "dust_index",
-            "duste_umin", "duste_qpah", "duste_gamma",
-            "log_fagn", "agn_tau"]
-
-    sfh, sfh_label = construct_sfh_measure(chain, agebins)
-    niter = len(sfh[0])
-    cols += sfh_label
-    dt = np.dtype([(c, np.float) for c in cols])
-    params = np.zeros(niter, dtype=dt)
-
-    for c in cols:
-        if c in chain.dtype.names:
-            params[c] = np.squeeze(chain[c])
-
-    # --- dust attenuation
-    params["av"] = np.squeeze(1.086 * chain["dust2"])
-    params["av_bc"] = params["av"] * np.squeeze(1 + chain["dust_ratio"])
-
-    # --- agn ---
-    params["log_fagn"] = np.squeeze(np.log10(chain["fagn"]))
-
-    # --- stellar ---
-    for i, c in enumerate(sfh_label):
-        params[c] = np.squeeze(sfh[i])
-    return params
-
-
 def construct_sfh_measure(chain, agebins):
     logmass = np.squeeze(chain["logmass"])
     lm, sr = np.atleast_2d(chain["logmass"]), np.atleast_2d(chain["logsfr_ratios"])
@@ -82,48 +47,168 @@ def construct_sfh_measure(chain, agebins):
     return [age, ssfr], ["mwa", "ssfr"]
 
 
-def show_priors(model, diagonals, spans, show=[], smooth=0.1, nsample=int(1e4),
-                color="g", **linekwargs):
-    """
-    """
-    samples, _ = sample_prior(model, nsample=nsample)
-    priors = chain_to_struct(samples, model)
-    params = convert(priors, model.params["agebins"])
-    smooth = np.zeros(len(diagonals)) + np.array(smooth)
-    for i, p in enumerate(show):
-        ax = diagonals[i]
-        if p in priors.dtype.names:
-            x, y = get_simple_prior(model.config_dict[p]["prior"], spans[i])
-            ax.plot(x, y * ax.get_ylim()[1] * 0.96, color=color, **linekwargs)
-        else:
-            marginal(params[p], ax, span=spans[i], smooth=smooth[i],
-                     color=color, histtype="step", peak=ax.get_ylim()[1], **linekwargs)
+class Plotter(FigureMaker):
 
+    show = ["logmass", "ssfr", "logzsol", "mwa",
+            "av", "av_bc", "dust_index",
+            "duste_umin", "duste_qpah", "duste_gamma",
+            "log_fagn", "agn_tau"]
 
-def get_simple_prior(prior, xlim, num=1000):
-    xx = np.linspace(*xlim, num=num)
-    px = np.array([prior(x) for x in xx])
-    px = np.exp(px)
-    px /= px.max()
-    return xx, px
+    @property
+    def agebins(self):
+        return self.model.params["agebins"]
 
+    def convert(self, chain):
+        """Convert a chain (as structured ndarray) to structured array of derived
+        parameters.
+        """
+        cols = ["logmass", "logzsol", "gas_logu", "gas_logz",
+                "av", "av_bc", "dust_index",
+                "duste_umin", "duste_qpah", "duste_gamma",
+                "log_fagn", "agn_tau"]
 
-def set_lims(caxes):
-    caxes[0].set_xlim(8.9, 11.4)
-    caxes[1].set_xlim(-14.9, -8.1)
-    caxes[2].set_xlim(-2, 0.18)
-    caxes[3].set_xlim(0.1, 13.7)
+        sfh, sfh_label = construct_sfh_measure(chain, self.agebins)
+        niter = len(sfh[0])
+        cols += sfh_label
+        dt = np.dtype([(c, np.float) for c in cols])
+        params = np.zeros(niter, dtype=dt)
 
-    caxes[4].set_xlim(0, 4)
-    caxes[5].set_xlim(0, 5)
-    caxes[6].set_xlim(-1, 0.4)
+        for c in cols:
+            if c in chain.dtype.names:
+                params[c] = np.squeeze(chain[c])
 
-    caxes[7].set_xlim(0.5, 25)
-    caxes[8].set_xlim(0.5,7)
-    caxes[9].set_xlim(0.001, 0.10)
+        # --- dust attenuation
+        params["av"] = np.squeeze(1.086 * chain["dust2"])
+        params["av_bc"] = params["av"] * np.squeeze(1 + chain["dust_ratio"])
 
-    caxes[10].set_xlim(-5, 0.0)
-    caxes[11].set_xlim(5, 120)
+        # --- agn ---
+        params["log_fagn"] = np.squeeze(np.log10(chain["fagn"]))
+
+        # --- stellar ---
+        for i, c in enumerate(sfh_label):
+            params[c] = np.squeeze(sfh[i])
+        return params
+
+    def plot_all(self):
+        self.make_axes()
+        self.styles()
+        self.lkwargs["linewidth"] = 2
+        self.tkwargs["marker"] = ""
+        self.dkwargs["markersize"] = 10
+        self.make_art()
+
+        self.plot_post(self.caxes)
+        self.plot_sed(self.sax)
+        self.make_legend(self.sax)
+
+    def make_axes(self):
+
+        fig = pl.figure(figsize=(15, 8.3))
+        from matplotlib.gridspec import GridSpec
+        gs = gridspec.GridSpec(4, 8, wspace=0.2, hspace=0.65,
+                               left=0.1, right=0.98, top=0.95, bottom=0.1)
+
+        caxes = [fig.add_subplot(gs[0, 4+i]) for i in range(4)]
+        caxes += [fig.add_subplot(gs[1, 4+i]) for i in range(3)]
+        caxes += [fig.add_subplot(gs[2, 4+i]) for i in range(3)]
+        caxes += [fig.add_subplot(gs[3, 4+i]) for i in range(2)]
+        self.caxes = np.array(caxes)
+        self.fig = fig
+        self.sax = self.fig.add_subplot(gs[:4, :4])
+
+    def set_lims(self, caxes):
+        caxes[0].set_xlim(8.9, 11.4)
+        caxes[1].set_xlim(-14.9, -8.1)
+        caxes[2].set_xlim(-2, 0.18)
+        caxes[3].set_xlim(0.1, 13.7)
+
+        caxes[4].set_xlim(0, 4)
+        caxes[5].set_xlim(0, 5)
+        caxes[6].set_xlim(-1, 0.4)
+
+        caxes[7].set_xlim(0.5, 25)
+        caxes[8].set_xlim(0.5, 7)
+        caxes[9].set_xlim(0.001, 0.10)
+
+        caxes[10].set_xlim(-5, 0.0)
+        caxes[11].set_xlim(5, 120)
+
+    def plot_post(self, caxes, lfactor=1.75):
+        truths = self.convert(dict_to_struct(self.obs['mock_params']))
+
+        for i, p in enumerate(self.show):
+            ax = caxes.flat[i]
+            ax.set_xlabel(pretty.get(p, p))
+            marginal(self.parchain[p], ax, weights=self.weights,
+                     peak=1.0, histtype="stepfilled", **self.pkwargs)
+            # Plot truth
+            ax.axvline(truths[p], **self.tkwargs)
+
+        peak = np.ones(len(self.show)) * 0.96
+        peak[self.show.index("duste_gamma")] = lfactor
+        peak[self.show.index("agn_tau")] = lfactor
+        self.set_lims(caxes)
+        if self.prior_samples > 0:
+            spans = [ax.get_xlim() for ax in caxes.flat]
+            self.show_priors(caxes.flat, spans, peak=peak, smooth=0.02, **self.rkwargs)
+
+        # --- prettify ---
+        [ax.set_yticklabels([]) for ax in caxes.flat]
+
+    def plot_sed(self, sax, nufnu=True, microns=True):
+        """ Plot the SED: data and posterior predictions
+        """
+        wc = 10**(4 * nufnu)
+
+        # --- Photometric data ---
+        owave, ophot, ounc = self.obs["phot_wave"], self.obs["maggies"], self.obs["maggies_unc"]
+        maxw = np.max(owave > 10e4) * 520e4 + np.max(owave < 10e4) * 30e4
+        minw = 900
+        if nufnu:
+            _, ophot = to_nufnu(owave, ophot, microns=microns)
+            owave, ounc = to_nufnu(owave, ounc, microns=microns)
+
+        truespec = np.atleast_2d(self.obs["true_spectrum"])
+
+        # --- posterior samples ---
+        if args.n_seds > 0:
+            self.make_seds()
+            self.spec_wave = self.sps.wavelengths * (1 + self.model.params["zred"])
+            ckw = dict(minw=minw, maxw=maxw, R=500*2.35, nufnu=nufnu, microns=microns)
+            swave, sspec = convolve_spec(self.spec_wave, self.spec_samples, **ckw)
+            twave, tspec = convolve_spec(self.spec_wave, truespec, **ckw)
+
+            qq = np.percentile(sspec, [16, 50, 84], axis=0)
+            sax.fill_between(swave, qq[0, :], qq[-1, :], **self.pkwargs)
+            sax.plot(twave, tspec, **self.lkwargs)
+
+        # --- plot data ---
+        sax.plot(owave, ophot, **self.dkwargs)
+        sax.errorbar(owave, ophot, ounc, color="k", linestyle="")
+
+        # --- prettify ---
+        sax.set_yscale("log")
+        sax.set_xscale("log")
+        sax.set_xlim(1300./wc, maxw/wc)
+        sax.set_xlabel(r"$\lambda_{\rm obs} (\mu{\rm m})$")
+        sax.set_ylabel(r"$\nu f_\nu$")
+        if self.nufnu:
+            sax.set_ylim(1e-15, 1e-11)
+
+    def make_legend(self, sax):
+        # posterior
+        artists = self.art["truth"], self.art["prior"], self.art["posterior"]
+        legends = ["True Parameters", "Prior", "Posterior"]
+        self.fig.legend(artists, legends, (0.78, 0.1), frameon=True)
+
+        # sed
+        filterset = self.result["run_params"]["filterset"]
+        artists = [self.art["spec_data"], self.art["phot_data"], self.art["posterior"]]
+        legends = ["True SED", "Observed Photometry", "Posterior SED"]
+        sax.legend(artists, legends, loc="lower left")
+        sax.text(0.5, 0.3, filters[filterset], transform=sax.transAxes,
+                 verticalalignment="top", fontsize=20)
+        [item.set_fontsize(22) for item in [sax.xaxis.label, sax.yaxis.label]]
 
 
 if __name__ == "__main__":
@@ -144,123 +229,14 @@ if __name__ == "__main__":
     rcParams.update({'font.size': 15})
     rcParams.update({'xtick.labelsize': 12})
     rcParams.update({'ytick.labelsize': 12})
-    fig = pl.figure(figsize=(15, 8.3))
-    from matplotlib.gridspec import GridSpec
-    gs = GridSpec(4, 8,
-                  left=0.1, right=0.98, wspace=0.2, hspace=0.65, top=0.95, bottom=0.1)
 
-    caxes = [fig.add_subplot(gs[0, 4+i]) for i in range(4)]
-    caxes += [fig.add_subplot(gs[1, 4+i]) for i in range(3)]
-    caxes += [fig.add_subplot(gs[2, 4+i]) for i in range(3)]
-    caxes += [fig.add_subplot(gs[3, 4+i]) for i in range(2)]
-    caxes = np.array(caxes)
-    sax = fig.add_subplot(gs[:4, :4])
-
-    # --- Styles & Legend ---
-    # -----------------------
-    label_kwargs = {"fontsize": 14}
-    tick_kwargs = {"labelsize": 10}
-    pkwargs = dict(color=colorcycle[0], alpha=0.65)
-    dkwargs = dict(mfc=colorcycle[3], marker="o", linestyle="", mec="black", markersize=10, mew=2)
-    rkwargs = dict(color=colorcycle[4], linestyle="--", linewidth=2)
-    lkwargs = dict(color="black", marker="", linestyle="-", linewidth=2)
-    tkwargs = dict(color="black", linestyle="--", linewidth=2, marker="")
-
-    from matplotlib.lines import Line2D
-    from matplotlib.patches import Patch
-    post = Patch(**pkwargs)
-    data = Line2D([], [], **dkwargs)
-    prior = Line2D([], [], **rkwargs)
-    truth_sed = Line2D([], [], **lkwargs)
-    truth_par = Line2D([], [], **tkwargs)
-
-    show = ["logmass", "ssfr", "logzsol", "mwa",
-            "av", "av_bc", "dust_index",
-            "duste_umin", "duste_qpah", "duste_gamma",
-            "log_fagn", "agn_tau"]
-
-    # -- Read in ---
-    # --------------
-    result, obs, model = reader.results_from(args.results_file)
-    chain = chain_to_struct(result["chain"], model=model)
-    weights = result["weights"]
-    agebins = model.params["agebins"]
-    filterset = result["run_params"]["filterset"]
-
-    # --- Marginal plots ---
-    # ----------------------
-    params = convert(chain, agebins)
-    truths = convert(dict_to_struct(obs['mock_params']), agebins)
-
-    for i, p in enumerate(show):
-        ax = caxes.flat[i]
-        ax.set_xlabel(pretty.get(p, p))
-        marginal(params[p], ax, weights=weights, peak=1.0,
-                 histtype="stepfilled", **pkwargs)
-        # Plot truth
-        ax.axvline(truths[p], **tkwargs)
-
-    set_lims(caxes)
-    if args.prior_samples > 0:
-        spans = [ax.get_xlim() for ax in caxes.flat]
-        show_priors(model, caxes.flat, spans, nsample=args.prior_samples,
-                    smooth=0.02, show=show, **rkwargs)
-
-    [ax.set_yticklabels([]) for ax in caxes.flat]
-    artists = [truth_par, prior, post]
-    legends = ["True Parameters", "Prior", "Posterior"]
-    fig.legend(artists, legends, (0.78, 0.1), frameon=True)
-
-    # --- SED plot ---
-    # -----------------------
-    nufnu = True
-    wc = 10**(4 * nufnu)
-
-    owave, ophot, ounc = obs["phot_wave"], obs["maggies"], obs["maggies_unc"]
-    maxw = np.max(owave > 10e4) * 520e4 + np.max(owave < 10e4) * 30e4
-    if nufnu:
-        _, ophot = to_nufnu(owave, ophot)
-        owave, ounc = to_nufnu(owave, ounc)
-
-    if args.n_seds > 0:
-        # --- get samples ---
-        raw_samples = sample_posterior(result["chain"], result["weights"], nsample=args.n_seds)
-        sps = build_sps(**result["run_params"])
-        sed_samples = [model.predict(p, obs=obs, sps=sps) for p in raw_samples[:args.n_seds]]
-        phot = np.array([sed[1] for sed in sed_samples])
-        spec = np.array([sed[0] for sed in sed_samples])
-        truespec = np.atleast_2d(obs["true_spectrum"])
-
-        wave = sps.ssp.wavelengths * (1 + model.params["zred"])
-        swave, sspec = convolve_spec(wave, spec, R=500*2.35, nufnu=nufnu, maxw=maxw)
-        twave, tspec = convolve_spec(wave, truespec, R=500*2.35, nufnu=nufnu, maxw=maxw)
-
-        qq = np.percentile(sspec, [16, 50, 84], axis=0)
-        sax.fill_between(swave, qq[0, :], qq[-1, :], **pkwargs)
-        sax.plot(twave, tspec[0], **lkwargs)
-
-    sax.plot(owave, ophot, **dkwargs)
-    sax.errorbar(owave, ophot, ounc, color="k", linestyle="")
-
-    sax.set_yscale("log")
-    sax.set_xscale("log")
-    sax.set_xlim(0.13, maxw/1e4)
-    sax.set_xlabel(r"$\lambda_{\rm obs} (\mu{\rm m})$")
-    sax.set_ylabel(r"$\nu f_\nu$")
-    if nufnu:
-        sax.set_ylim(1e-15, 1e-11)
-
-    artists = [truth_sed, data, post]
-    legends = ["True SED", "Observed Photometry", "Posterior SED"]
-    sax.legend(artists, legends, loc="lower left")
-    sax.text(0.58, 0.3, filters[filterset], transform=sax.transAxes,
-             verticalalignment="top", fontsize=20)
-    [item.set_fontsize(22) for item in [sax.xaxis.label, sax.yaxis.label]]
+    plotter = Plotter(nufnu=True, **vars(args))
+    plotter.plot_all()
 
     # --- Saving ---
     # --------------
     if args.fignum:
-        fig.savefig("paperfigures/{}.{}".format(args.fignum, args.figext), dpi=400)
+        plotter.fig.savefig("paperfigures/{}.{}".format(args.fignum, args.figext), dpi=400)
     else:
         pl.ion()
         pl.show()

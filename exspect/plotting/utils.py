@@ -112,6 +112,8 @@ def violinplot(data, pos, widths, ax=None,
         pc.set_facecolor(color[i])
         pc.set_alpha(alpha)
 
+def boxplot():
+    pass
 
 def step(xlo, xhi, y=None, ylo=None, yhi=None, ax=None,
          label=None, linewidth=2, **kwargs):
