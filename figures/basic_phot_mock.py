@@ -20,7 +20,6 @@ from prospect.plotting import boxplot, get_simple_prior, sample_prior, sample_po
 from prospect.plotting.corner import allcorner, marginal, get_spans, _quantile
 from prospect.plotting.sed import to_nufnu, convolve_spec
 
-#from exspect.examples.parametric_mock_specphot import build_sps
 from defaults import pretty, plot_defaults, colorcycle
 
 rcParams = plot_defaults(rcParams)

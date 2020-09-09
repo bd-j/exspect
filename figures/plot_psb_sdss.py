@@ -456,29 +456,6 @@ class Plotter(FigureMaker):
         self.art["all_post"] = Patch(**self.akwargs)
         self.art["spec_best"] = Line2D([], [], **self.spkwargs)
 
-    def restframe_axis(self, ax, microns=True):
-        """Set second x-axis (rest-frame wavelength)
-        """
-        if "zred" in self.model.free_params:
-            zred = self.model.params["zred"]
-        else:
-            zred = self.parchain["zred"][self.ind_best]
-        y1, y2 = ax.get_ylim()
-        x1, x2 = ax.get_xlim()
-        ax2 = ax.twiny()
-        ax2.set_xlim(x1 / (1 + zred), x2 / (1 + zred))
-        unit = microns*r"$\mu$m" + (not microns)*r"$\AA$"
-        ax2.set_xlabel(r'$\lambda_{{\rm rest}}$ ({})'.format(unit), fontsize=fs)
-        ax2.set_ylim(y1, y2)
-        ax2.tick_params('both', pad=2.5, size=3.5, width=1.0, which='both', labelsize=ticksize)
-
-    def show_transcurves(self, ax):
-        # add transmission curves
-        ymin, ymax = ax.get_ylim()
-        dyn = 10**(np.log10(ymin)+(np.log10(ymax)-np.log10(ymin))*0.2)
-        for f in self.obs['filters']:
-            ax.plot(f.wavelength, f.transmission/f.transmission.max()*dyn+ymin,
-                    lw=1.5, color='0.3', alpha=0.7)
 
         # add in arrows for negative fluxes
         #if pflux.sum() != len(obsmags):

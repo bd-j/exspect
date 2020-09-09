@@ -19,7 +19,10 @@ from prospect.plotting.corner import allcorner, marginal, quantile, _quantile
 from prospect.plotting.sed import to_nufnu, convolve_spec
 from prospect.plotting.sfh import ratios_to_sfrs, sfh_quantiles
 
-from exspect.examples.photoz import zred_to_agebins, zlogsfr_ratios_to_masses
+try:
+    from exspect.examples.photoz import zred_to_agebins, zlogsfr_ratios_to_masses
+except(ImportError):
+    pass
 from defaults import pretty, plot_defaults, colorcycle
 
 

@@ -20,7 +20,7 @@ setup(
     version="0.0",
     author="",
     author_email="benjamin.johnson@cfa.harvard.edu",
-    packages=["exspect", "exspect.plotting", "exspect.examples"],
+    packages=["exspect", "exspect.examples"],
     license="LICENSE",
     description="Prospector paper demos",
     #long_description=open("README.md").read(),

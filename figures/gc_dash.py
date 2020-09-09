@@ -19,7 +19,6 @@ from prospect.plotting.corner import allcorner, marginal, scatter, get_spans
 from prospect.plotting.sed import to_nufnu, convolve_spec
 from prospect.plotting.sfh import ratios_to_sfrs, sfh_quantiles
 
-#from exspect.examples.globular_cluster import build_sps
 from defaults import pretty, plot_defaults, colorcycle
 
 rcParams = plot_defaults(rcParams)

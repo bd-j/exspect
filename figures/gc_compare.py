@@ -14,7 +14,7 @@ from numpy.lib.recfunctions import append_fields
 import prospect.io.read_results as reader
 from prospect.io.write_results import chain_to_struct
 
-from exspect.plotting.corner import _quantile
+from prospect.plotting.corner import _quantile
 from defaults import plot_defaults, pretty
 
 lmap = {"tage": "age",
