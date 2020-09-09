@@ -155,18 +155,18 @@ class Plotter(FigureMaker):
         # --- prettify ---
         [ax.set_yticklabels([]) for ax in caxes.flat]
 
-    def plot_sed(self, sax):
+    def plot_sed(self, sax, nufnu=True, microns=True):
         """ Plot the SED: data and posterior predictions
         """
-        wc = 10**(4 * self.nufnu)
+        wc = 10**(4 * nufnu)
 
         # --- Photometric data ---
         owave, ophot, ounc = self.obs["phot_wave"], self.obs["maggies"], self.obs["maggies_unc"]
         maxw = np.max(owave > 10e4) * 520e4 + np.max(owave < 10e4) * 30e4
         minw = 900
-        if self.nufnu:
-            _, ophot = to_nufnu(owave, ophot)
-            owave, ounc = to_nufnu(owave, ounc)
+        if nufnu:
+            _, ophot = to_nufnu(owave, ophot, microns=microns)
+            owave, ounc = to_nufnu(owave, ounc, microns=microns)
 
         truespec = np.atleast_2d(self.obs["true_spectrum"])
 
@@ -174,13 +174,13 @@ class Plotter(FigureMaker):
         if args.n_seds > 0:
             self.make_seds()
             self.spec_wave = self.sps.wavelengths * (1 + self.model.params["zred"])
-            ckw = dict(minw=minw, maxw=maxw, R=500*2.35, nufnu=self.nufnu)
+            ckw = dict(minw=minw, maxw=maxw, R=500*2.35, nufnu=nufnu, microns=microns)
             swave, sspec = convolve_spec(self.spec_wave, self.spec_samples, **ckw)
             twave, tspec = convolve_spec(self.spec_wave, truespec, **ckw)
 
             qq = np.percentile(sspec, [16, 50, 84], axis=0)
             sax.fill_between(swave, qq[0, :], qq[-1, :], **self.pkwargs)
-            sax.plot(twave, tspec[0], **self.lkwargs)
+            sax.plot(twave, tspec, **self.lkwargs)
 
         # --- plot data ---
         sax.plot(owave, ophot, **self.dkwargs)

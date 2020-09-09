@@ -46,43 +46,6 @@ class Plotter(FigureMaker):
 
         return params
 
-    def make_extra_seds(self, n_seds=0, fullsed=False):
-        if self.sps is None:
-            self.build_sps()
-
-        # create a dummy obs with no wavelength vector
-        dummy = deepcopy(self.obs)
-        dummy["wavelength"] = None
-        dummy["spectrum"] = None
-
-        xbest = self.result["chain"][self.ind_best, :]
-        self.spec_best, self.phot_best, _ = self.model.predict(xbest, obs=self.obs, sps=self.sps)
-        self.cal_best = self.model._speccal.copy()
-        if fullsed:
-            self.model.predict(xbest, obs=dummy, sps=self.sps)
-        self.sed_best = self.model._sed.copy()
-        if n_seds > 0:
-            # --- get SED samples ---
-            raw_samples = sample_posterior(self.result["chain"], self.weights, nsample=n_seds)
-            spec, phot, cal, sed = [], [], [], []
-            for x in raw_samples:
-                s, p, _ = self.model.predict(x, obs=self.obs, sps=self.sps)
-                spec.append(s)
-                phot.append(p)
-                cal.append(self.model._speccal.copy())
-                if fullsed:
-                    s, p, _ = self.model.predict(x, obs=dummy, sps=self.sps)
-                sed.append(self.model._sed)
-                self.spec_samples = np.array(spec)
-                self.phot_samples = np.array(phot)
-                self.sed_samples = np.array(sed)
-                self.cal_samples = np.array(cal)
-        else:
-            self.spec_samples = np.atleast_2d(self.spec_best)
-            self.phot_samples = np.atleast_2d(self.phot_best)
-            self.sed_samples = np.atleast_2d(self.sed_best)
-            self.cal_samples = np.atleast_2d(self.cal_best)
-
     def plot_all(self):
         self.make_axes()
         self.styles()
@@ -93,7 +56,7 @@ class Plotter(FigureMaker):
 
         self.plot_corner(self.caxes)
         if self.n_seds >= 0:
-            self.make_extra_seds(n_seds=self.n_seds, fullsed=True)
+            self.make_seds(full=True)
         self.plot_sed(self.sax, self.rax, lax=self.lax)
         self.make_legends(self.sax)
 
@@ -123,21 +86,27 @@ class Plotter(FigureMaker):
                           label_kwargs=self.label_kwargs,
                           tick_kwargs=self.tick_kwargs, max_n_ticks=4)
 
-    def plot_sed(self, sax, rax, lax=None, fullsed=True, q=[16, 50, 84]):
+    def plot_sed(self, sax, rax, lax=None,
+                 nufnu=True, microns=True, normalize=True,
+                 fullsed=True, q=[16, 50, 84]):
         """Inset plot of SED
         """
-        wc = 10**(4 * self.nufnu)
+        wc = 10**(4 * microns)
 
         # --- Data ---
-        ophot, ounc = self.obs["maggies"], self.obs["maggies_unc"]
-        owave = np.array([f.wave_effective for f in self.obs["filters"]])
-        phot_width = np.array([f.effective_width for f in self.obs["filters"]])
+        pmask = self.obs["phot_mask"]
+        ophot, ounc = self.obs["maggies"][pmask], self.obs["maggies_unc"][pmask]
+        owave = np.array([f.wave_effective for f in self.obs["filters"]])[pmask]
+        phot_width = np.array([f.effective_width for f in self.obs["filters"]])[pmask]
         maxw, minw = np.max(owave + phot_width) * 1.02, np.min(owave - phot_width) / 1.02
         phot_width /= wc
-        if self.nufnu:
-            _, ophot = to_nufnu(owave, ophot)
-            owave, ounc = to_nufnu(owave, ounc)
-        renorm = 1 / np.mean(ophot)
+        if nufnu:
+            _, ophot = to_nufnu(owave, ophot, microns=microns)
+            owave, ounc = to_nufnu(owave, ounc, microns=microns)
+        if normalize:
+            renorm = 1. / np.mean(ophot)
+        else:
+            renorm = 1.
 
         # --- plot phot data ---
         sax.plot(owave, ophot * renorm, zorder=20, **self.dkwargs)
@@ -145,14 +114,12 @@ class Plotter(FigureMaker):
 
         # --- posterior samples ---
         self.spec_wave = self.sps.wavelengths * (1 + self.chain["zred"][self.ind_best])
-
-        ckw = dict(minw=minw, maxw=maxw, R=500*2.35, nufnu=self.nufnu)
+        ckw = dict(minw=minw, maxw=maxw, R=500*2.35, nufnu=nufnu, microns=microns)
         swave, ssed = convolve_spec(self.spec_wave, self.sed_samples, **ckw)
-        if self.nufnu:
-            pwave, phot_best = to_nufnu(self.obs["phot_wave"], self.phot_best)
-            pwave, phot = to_nufnu(self.obs["phot_wave"], self.phot_samples)
-        else:
-            phot, phot_best = self.phot_samples, self.phot_best
+        phot, phot_best = self.phot_samples, self.phot_best
+        if nufnu:
+            _, phot_best = to_nufnu(self.obs["phot_wave"], self.phot_best, microns=microns)
+            _, phot = to_nufnu(self.obs["phot_wave"], self.phot_samples, microns=microns)
 
         # Photometry posterior as boxes
         self.bkwargs = dict(alpha=0.8, facecolor=colorcycle[0], edgecolor="k")

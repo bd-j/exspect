@@ -100,31 +100,30 @@ class Plotter(FigureMaker):
         if self.prior_samples > 0:
             self.show_priors(np.diag(caxes), spans, smooth=0.1, **self.rkwargs)
 
-    def plot_sed(self, sax, rax):
+    def plot_sed(self, sax, rax, nufnu=True, microns=True):
         """Inset plot of SED
         """
-        wc = 10**(4 * self.nufnu)
+        wc = 10**(4 * microns)
 
         # --- Data ---
-        ophot, ounc = self.obs["maggies"], self.obs["maggies_unc"]
-        owave = np.array([f.wave_effective for f in self.obs["filters"]])
-        phot_width = np.array([f.effective_width for f in self.obs["filters"]])
+        pmask = self.obs["phot_mask"]
+        ophot, ounc = self.obs["maggies"][pmask], self.obs["maggies_unc"][pmask]
+        owave = np.array([f.wave_effective for f in self.obs["filters"]])[pmask]
+        phot_width = np.array([f.effective_width for f in self.obs["filters"]])[pmask]
         maxw, minw = np.max(owave + phot_width) * 1.02, np.min(owave - phot_width) / 1.02
         phot_width /= wc
-        if self.nufnu:
-            _, ophot = to_nufnu(owave, ophot)
-            owave, ounc = to_nufnu(owave, ounc)
+        if nufnu:
+            _, ophot = to_nufnu(owave, ophot, microns=microns)
+            owave, ounc = to_nufnu(owave, ounc, microns=microns)
         renorm = 1 / np.mean(ophot)
 
         # --- posterior samples ---
         if self.n_seds > 0:
             self.spec_wave = self.sps.wavelengths * (1 + self.model.params["zred"])
-            ckw = dict(minw=minw, maxw=maxw, R=500*2.35, nufnu=self.nufnu)
-            if self.nufnu:
+            ckw = dict(minw=minw, maxw=maxw, R=500*2.35, nufnu=nufnu, microns=microns)
+            if nufnu:
                 swave, spec_best = convolve_spec(self.spec_wave, [self.spec_best], **ckw)
                 twave, spec_true = convolve_spec(self.spec_wave, [self.obs["true_spectrum"]], **ckw)
-                spec_true = np.squeeze(spec_true)
-                spec_best = np.squeeze(spec_best)
                 pwave, phot_best = to_nufnu(self.obs["phot_wave"], self.phot_best)
                 pwave, phot = to_nufnu(self.obs["phot_wave"], self.phot_samples)
             else:
@@ -132,8 +131,7 @@ class Plotter(FigureMaker):
                 phot, phot_best = self.phot_samples, self.phot_best
 
             # --- plot spec & phot samples ---
-            self.bkwargs = dict(alpha=0.8,
-                                facecolor=self.pkwargs["color"], edgecolor="k")
+            self.bkwargs = dict(alpha=0.8, facecolor=self.pkwargs["color"], edgecolor="k")
             self.art["sed_post"] = Patch(**self.bkwargs)
             widths = 0.1 * owave  # phot_width
             boxplot((phot * renorm).T, owave, widths, ax=sax, **self.bkwargs)

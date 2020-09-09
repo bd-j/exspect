@@ -43,7 +43,7 @@ class Plotter(FigureMaker):
 
         self.plot_zred(self.zax)
         self.plot_posteriors(self.paxes)
-        self.plot_sfh(self.hax)
+        self.plot_sfh(self.hax, nt=100)
         if self.n_seds >= 0:
             self.make_seds()
         self.plot_sed(self.sax, self.rax)
@@ -178,10 +178,10 @@ class Plotter(FigureMaker):
         sq = sfh_quantiles(tvec, tlook, sfh_samples, self.weights, q=[16, 50, 84])
 
         # --- plot SFH ---
-        sfhax.plot(tvec, sq[:, 1], '-', **self.pkwargs)
+        sfhax.plot(tvec, sq[:, 1], '-', lw=1.5, color="k")
         sfhax.fill_between(tvec, sq[:, 0], sq[:, 2], **self.pkwargs)
-        sfhax.plot(tvec, sq[:, 0], '-', lw=1.5, **self.pkwargs)
-        sfhax.plot(tvec, sq[:, 2], '-', lw=1.5, **self.pkwargs)
+        sfhax.plot(tvec, sq[:, 0], '-', lw=1.5, color="k", alpha=0.3)
+        sfhax.plot(tvec, sq[:, 2], '-', lw=1.5, color="k", alpha=0.3)
 
         # show a few samples?  need to weight them
         #for i in range(20):
