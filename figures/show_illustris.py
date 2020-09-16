@@ -20,36 +20,10 @@ from prospect.io import read_results as reader
 from prospect.models.sedmodel import PolySedModel
 
 from prospect.plotting import FigureMaker, pretty, chain_to_struct
-from prospect.plotting.sfh import ratios_to_sfrs
+from prospect.plotting.sfh import ratios_to_sfrs, parametric_sfr
 from prospect.plotting.corner import quantile
 
 from defaults import plot_defaults, colorcycle
-
-from scipy.special import gamma, gammainc
-def parametric_sfr(tau=4, tage=13.7, power=1, mass=None, logmass=None,
-                   times=None, **extras):
-    """Return the SFR (Msun/yr) for the given parameters of an exponential or
-    delayed exponential SFH. Does not account for burst, constant components,
-    or truncations.
-
-    :param power: (optional, default: 1)
-        Use 0 for exponential decline, and 1 for te^{-t} (delayed exponential decline)
-
-    :param times: (optional, ndarray)
-        If given, a set of loockback times where you want to calculate the sfr
-    """
-    if (mass is None) and (logmass is not None):
-        mass = 10**logmass
-    if times is None:
-        tt = tage
-    else:
-        assert len(np.atleast_1d(tage)) == 1
-        assert len(np.atleast_1d(tau)) == 1
-        tt = tage - times
-    p = power + 1
-    psi = mass * (tt/tau)**power * np.exp(-tt/tau) / (tau * gamma(p) * gammainc(p, tage/tau))
-    psi[tt < 0] = 0
-    return psi * 1e-9
 
 
 def binup_illustris(time, sfr, agebins=None):
