@@ -18,9 +18,9 @@ parser = prospect_args.get_parser()
 # --- Add custom arguments ---
 # Data arguments
 parser.add_argument('--objname', type=str, default='92942',
-                    help="Name of the object to fit.")
+                    help="Name of the object to fit; has no effect.")
 parser.add_argument('--zred', type=float, default=0.073,
-                    help="Redshift")
+                    help="Redshift.  Do not change.")
 parser.add_argument('--err_floor', type=float, default=0.05,
                     help="Force fractional photometric errors to be larger than this")
 # Model options
@@ -45,12 +45,13 @@ parser.add_argument('--free_neb_met', action="store_true",
 # ------------------
 # Observational data
 # ------------------
-def build_obs(objname=92942, err_floor=0.05, **kwargs):
-    """Load photometry and spectra
+def build_obs(err_floor=0.05, **kwargs):
+    """Load photometry and spectra.  This is specific to a particular object,
+    but more general functionality could be added
     """
 
     # --- u,g,r,i,z
-    mags = [18.81, 17.10, 16.43, 16.07, 15.85]
+    mags = [18.81, 17.10, 16.43, 16.07, 15.85]  # FIXME: HARDCODED!
     magunc = [0.02, 0.00, 0.00, 0.00, 0.01]
     filters = ['sdss_{}0'.format(b) for b in "ugriz"]
 
@@ -74,7 +75,7 @@ def build_obs(objname=92942, err_floor=0.05, **kwargs):
 
     # --- now spectra
     # load target list first
-    tloc = '../data/spec-2101-53858-0220.fits'
+    tloc = '../data/spec-2101-53858-0220.fits'  # FIXME: HARDCODED!
     dat = fits.open(tloc)[1].data
 
     # generate observables
@@ -120,7 +121,7 @@ def build_obs(objname=92942, err_floor=0.05, **kwargs):
 # --------------
 # Model Definition
 # --------------
-def build_model(objname=92942, zred=0.073, nbins_sfh=8,
+def build_model(zred=0.073, nbins_sfh=8,
                 mixture_model=True, jitter_model=True,
                 add_neb=True, marginalize_neb=True, free_neb_met=True,
                 continuum_order=12, **extras):
@@ -182,14 +183,14 @@ def build_model(objname=92942, zred=0.073, nbins_sfh=8,
     model_params['dust_type']['init'] = 4
     model_params["dust2"]["prior"] = priors.ClippedNormal(mini=0.0, maxi=4.0, mean=0.3, sigma=1)
     model_params["dust_index"] = dict(N=1, isfree=True, init=0,
-                                      priors=priors.TopHat(mini=-1.0, maxi=0.4))
+                                      prior=priors.TopHat(mini=-1.0, maxi=0.4))
 
     def to_dust1(dust1_fraction=None, dust1=None, dust2=None, **extras):
         return dust1_fraction*dust2
 
     model_params['dust1'] = dict(N=1, isfree=False, init=0,
                                  prior=None, depends_on=to_dust1)
-    model_params['dust1_fraction'] = dict(N=1, isfree=True, initi=1.0,
+    model_params['dust1_fraction'] = dict(N=1, isfree=True, init=1.0,
                                           prior=priors.ClippedNormal(mini=0.0, maxi=2.0, mean=1.0, sigma=0.3))
 
     # --- spectral smoothing ---

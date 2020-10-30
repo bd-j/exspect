@@ -87,7 +87,7 @@ class Plotter:
         return params
 
     def make_axes(self):
-        self.fig, self.axes = pl.subplots(3, 2, figsize=(5, 7), sharey="row", sharex="row")
+        self.fig, self.axes = pl.subplots(3, 2, figsize=(4.5, 8), sharey="row", sharex="row")
         self.fig.subplots_adjust(wspace=0.2, hspace=0.5)
 
     def styles(self):
@@ -115,6 +115,13 @@ class Plotter:
                 if ke in self.literature.dtype.names:
                     xerr = self.literature[ke]
                     ax.errorbar(self.literature[pp], y, xerr=xerr, **self.ekwargs)
+                # priors (assuming topHat)
+                m = list(plotter.models.values())[0]
+                try:
+                    prior = m.config_dict[p]["prior"].params.values()
+                    [ax.axhline(l, linestyle=":", color="k", alpha=0.5) for l in prior]
+                except(KeyError):
+                    pass
 
         # --- Prettify ---
         for i, p in enumerate(self.show):
@@ -126,12 +133,15 @@ class Plotter:
                 ax.set_xlabel("{} [{}]".format(pp, l))
                 lo, hi = ax.get_xlim()
                 xx = np.linspace(lo, hi, 10)
-                ax.plot(xx, xx, linestyle=":", color="k")
+                ax.plot(xx, xx, linestyle="--", color="k")
+
+        [ax.set_ylim(-2.5, 0.3) for ax in axes[0, :]]
+        [ax.set_ylim(3, 17) for ax in axes[1, :]]
 
         axes.flat[-1].set_visible(False)
 
-        cax = self.fig.add_subplot(3, 12, 32)
-        self.fig.colorbar(cm, cax=cax, label="HBR")
+        cax = self.fig.add_subplot(12, 2, 22)
+        self.fig.colorbar(cm, cax=cax, label="HBR", orientation="horizontal")
 
     def plot_all(self):
         self.read_in()

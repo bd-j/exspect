@@ -23,7 +23,7 @@ cd $MYSCRATCH/exspect/fitting
 
 # data flags
 objnum=92942
-data="-objname $objnum --zred=0.073"
+data="--objname $objnum --zred=0.073"
 
 # model flags
 model="--continuum_order=12 --add_neb --free_neb_met --marginalize_neb"
