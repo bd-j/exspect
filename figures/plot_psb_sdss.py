@@ -113,7 +113,7 @@ class Plotter(FigureMaker):
         self.fig = pl.figure(figsize=(9.5, 14.))
 
         gs = gridspec.GridSpec(10, npar, width_ratios=npar * [10], wspace=0.15, hspace=0.03,
-                               height_ratios=[3, 1, 1.25, 3, 1, 1, 1.25, 1.75, 1., 1.75],
+                               height_ratios=[3, 1, 1.25, 3, 1, 1, 1.25, 2.0, 0.5, 2.0],
                                left=0.1, right=0.98, top=0.99, bottom=0.05)
         self.sedax = self.fig.add_subplot(gs[0, :])
         self.resax = self.fig.add_subplot(gs[1, :], sharex=self.sedax)
@@ -123,7 +123,8 @@ class Plotter(FigureMaker):
 
         #self.paxes = [self.fig.add_subplot(gs[7, i]) for i in range(npar)]
         #self.sfhax = self.fig.add_subplot(gs[9, 2:-2])
-        self.sfhax = self.fig.add_subplot(gs[7:10, 0:3])
+        self.sfhax = self.fig.add_subplot(gs[7:, 0:3])
+        #self.paxes = np.array([self.fig.add_subplot(gs[int(i/3)*2 + 7, 3 + (i % 3)]) for i in range(npar)])
         self.paxes = np.array([self.fig.add_subplot(gs[int(i/3)*2 + 7, 3 + (i % 3)]) for i in range(npar)])
 
         pl.show()
@@ -169,7 +170,7 @@ class Plotter(FigureMaker):
                        arrowprops=dict(shrinkA=1.5, shrinkB=1.5, fc="red", ec="red"),
                        zorder=2)
 
-    def plot_posteriors(self, paxes,
+    def plot_posteriors(self, paxes, show_extra=False,
                         title_kwargs=dict(fontsize=fs*0.75),
                         label_kwargs=dict(fontsize=fs*0.6)):
 
@@ -179,15 +180,17 @@ class Plotter(FigureMaker):
             ax.set_xlabel(pretty.get(p, p), **label_kwargs)
 
             marginal(x, weights=self.weights, ax=ax, histtype="stepfilled", **self.akwargs)
-            # --- quantiles ---
-            qs = _quantile(x, self.qu/100., weights=self.weights)
-            for j, q in enumerate(qs):
-                lw = 1 + int(j == 1)
-                paxes[i].axvline(q, ls="dashed", color='k', alpha=0.75, lw=lw)
-            qm, qp = np.diff(qs)
-            title = r"${{{0:.2f}}}_{{-{1:.2f}}}^{{+{2:.2f}}}$"
-            title = title.format(qs[1], qm, qp)
-            ax.set_title(title, va='bottom', pad=2.0, **title_kwargs)
+
+            if show_extra:
+                # --- quantiles ---
+                qs = _quantile(x, self.qu/100., weights=self.weights)
+                for j, q in enumerate(qs):
+                    lw = 1 + int(j == 1)
+                    paxes[i].axvline(q, ls="dashed", color='k', alpha=0.75, lw=lw)
+                qm, qp = np.diff(qs)
+                title = r"${{{0:.2f}}}_{{-{1:.2f}}}^{{+{2:.2f}}}$"
+                title = title.format(qs[1], qm, qp)
+                ax.set_title(title, va='bottom', pad=2.0, **title_kwargs)
 
         # priors
         if self.prior_samples > 0:

@@ -154,14 +154,14 @@ class Plotter(FigureMaker):
         sax.set_xlim(minw / wc, maxw / wc)
         sax.set_xscale("log")
         sax.set_yscale("log")
-        sax.set_ylabel(r"$\nu f_\nu$ (Arbitrary)", fontsize=18)
+        sax.set_ylabel(r"$\nu f_\nu \times {\rm Constant}$", fontsize=20)
         sax.set_xticklabels([])
         sax.set_yticks([0.4, 0.6, 1.0, 1.5])
         sax.yaxis.set_major_formatter(ticker.StrMethodFormatter("{x:0.1f}"))
 
         rax.set_ylim(-2.8, 2.8)
-        rax.set_ylabel(r"$\chi_{\rm best}$", fontsize=18)
-        rax.set_xlabel(r"$\lambda_{\rm obs}$ ($\mu$m)", fontsize=18)
+        rax.set_ylabel(r"$\chi_{\rm best}$", fontsize=20)
+        rax.set_xlabel(r"$\lambda_{\rm obs}$ ($\mu$m)", fontsize=20)
         wpos = [0.2, 0.5, 1.0, 1.5]
         rax.set_xticks(wpos)
         rax.xaxis.set_major_formatter(ticker.StrMethodFormatter("{x:0.1f}"))

@@ -24,4 +24,5 @@ cd $MYSCRATCH/exspect/fitting
 
 python photoz_GNz11.py --free_igm --add_neb --complex_dust --free_neb_met \
                        --nbins_sfh 5 --zmax=35 \
-                       --dynesty --nested_method=rwalk --outfile output/photoz_gnz11
+                       --dynesty --nested_method=rwalk --nlive_init=1000 \
+                       --outfile output/photoz_gnz11

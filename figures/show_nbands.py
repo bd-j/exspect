@@ -169,6 +169,7 @@ class Plotter(FigureMaker):
             owave, ounc = to_nufnu(owave, ounc, microns=microns)
 
         truespec = np.atleast_2d(self.obs["true_spectrum"])
+        renorm = 1 / truespec[0, 2000]
 
         # --- posterior samples ---
         if args.n_seds > 0:
@@ -178,22 +179,22 @@ class Plotter(FigureMaker):
             swave, sspec = convolve_spec(self.spec_wave, self.spec_samples, **ckw)
             twave, tspec = convolve_spec(self.spec_wave, truespec, **ckw)
 
-            qq = np.percentile(sspec, [16, 50, 84], axis=0)
+            qq = np.percentile(sspec, [16, 50, 84], axis=0) * renorm
             sax.fill_between(swave, qq[0, :], qq[-1, :], **self.pkwargs)
-            sax.plot(twave, tspec, **self.lkwargs)
+            sax.plot(twave, tspec * renorm, **self.lkwargs)
 
         # --- plot data ---
-        sax.plot(owave, ophot, **self.dkwargs)
-        sax.errorbar(owave, ophot, ounc, color="k", linestyle="")
+        sax.plot(owave, ophot * renorm, **self.dkwargs)
+        sax.errorbar(owave, ophot * renorm, ounc * renorm, color="k", linestyle="")
 
         # --- prettify ---
         sax.set_yscale("log")
         sax.set_xscale("log")
         sax.set_xlim(1300./wc, maxw/wc)
         sax.set_xlabel(r"$\lambda_{\rm obs} (\mu{\rm m})$")
-        sax.set_ylabel(r"$\nu f_\nu$")
+        sax.set_ylabel(r"$\nu f_\nu \times {\rm Constant}$")
         if self.nufnu:
-            sax.set_ylim(1e-15, 1e-11)
+            sax.set_ylim(1e-15 * renorm, 1e-11 * renorm)
 
     def make_legend(self, sax):
         # posterior
