@@ -34,6 +34,6 @@ fit="--dynesty --nested_method=rwalk --nested_rwalks=48 --nlive_batch=200 --nliv
 fit=$fit"--nested_dlogz_init=0.01 --nested_posterior_thresh=0.03"
 
 
-mkdir -p output/illustris
+mkdir -p output/psb_results
 python bdj_psb_params.py $fit $model $data \
-                         --outfile=output/psb/psb_$objnum
+                         --outfile=output/psb_results/psb_$objnum

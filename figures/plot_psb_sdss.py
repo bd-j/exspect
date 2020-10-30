@@ -105,7 +105,7 @@ class Plotter(FigureMaker):
                       nufnu=self.nufnu, microns=self.microns)
         self.plot_spec(self.specax, self.sresax, calax=self.calax,
                        nufnu=self.nufnu, microns=False)
-        self.restframe_axis(self.specax, microns=False)
+        self.restframe_axis(self.specax, microns=False, fontsize=fs, ticksize=ticksize)
         self.make_inset(self.specax, microns=False)
 
     def setup_geometry(self, npar):

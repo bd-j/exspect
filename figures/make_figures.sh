@@ -49,5 +49,5 @@ python show_gnz11.py --prior_samples=$nprior --n_seds=$nseds --fignum=gnz11 \
                      --results_file=${rdir}/photoz_gnz11.h5
 
 # SDSS PSB
-python plot_psb_sdss.py --prior_samples=$nprior --n_seds=$nseds --fignum=sdss_psb
+python plot_psb_sdss.py --prior_samples=$nprior --n_seds=$nseds --fignum=sdss_psb \
                         --results_file=${rdir}/psb_results/psb_sdss_mcmc.h5
