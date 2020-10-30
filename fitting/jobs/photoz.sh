@@ -3,7 +3,7 @@
 #SBATCH -J exspect_gnz11
 #SBATCH -n 1 # Number of cores requested
 #SBATCH -N 1 # Ensure that all cores are on one machine
-#SBATCH -t 6:00:00 # Runtime
+#SBATCH -t 12:00:00 # Runtime
 #SBATCH -p conroy,shared # Partition to submit to
 #SBATCH --constraint=intel
 #SBATCH --mem-per-cpu=4000 #in MB

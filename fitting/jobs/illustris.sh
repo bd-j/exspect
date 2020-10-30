@@ -7,8 +7,8 @@
 #SBATCH -p conroy,shared # Partition to submit to
 #SBATCH --constraint=intel
 #SBATCH --mem-per-cpu=4000 #in MB
-#SBATCH -o /n/holyscratch01/conroy_lab/bdjohnson/exspect/fitting/logs/exspect_nbands_%A_%a.out # Standard out goes to this file
-#SBATCH -e /n/holyscratch01/conroy_lab/bdjohnson/exspect/fitting/logs/exspect_nbands_%A_%a.err # Standard err goes to this file
+#SBATCH -o /n/holyscratch01/conroy_lab/bdjohnson/exspect/fitting/logs/exspect_ill_%A_%a.out # Standard out goes to this file
+#SBATCH -e /n/holyscratch01/conroy_lab/bdjohnson/exspect/fitting/logs/exspect_ill_%A_%a.err # Standard err goes to this file
 
 module purge
 module load gcc/9.2.0-fasrc01

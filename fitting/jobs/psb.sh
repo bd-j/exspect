@@ -1,14 +1,14 @@
 #!/bin/bash
 
-#SBATCH -J exspect_illustris
+#SBATCH -J exspect_psb
 #SBATCH -n 1 # Number of cores requested
 #SBATCH -N 1 # Ensure that all cores are on one machine
 #SBATCH -t 144:00:00 # Runtime
 #SBATCH -p conroy,shared # Partition to submit to
 #SBATCH --constraint=intel
 #SBATCH --mem-per-cpu=4000 #in MB
-#SBATCH -o /n/holyscratch01/conroy_lab/bdjohnson/exspect/fitting/logs/exspect_nbands_%A_%a.out # Standard out goes to this file
-#SBATCH -e /n/holyscratch01/conroy_lab/bdjohnson/exspect/fitting/logs/exspect_nbands_%A_%a.err # Standard err goes to this file
+#SBATCH -o /n/holyscratch01/conroy_lab/bdjohnson/exspect/fitting/logs/exspect_psb_%A.out # Standard out goes to this file
+#SBATCH -e /n/holyscratch01/conroy_lab/bdjohnson/exspect/fitting/logs/exspect_psb_%A.err # Standard err goes to this file
 
 module purge
 module load gcc/9.2.0-fasrc01
@@ -31,7 +31,7 @@ model=$model" --nbins_sfh=8 --jitter_model --mixture_model"
 
 # fitting flags
 fit="--dynesty --nested_method=rwalk --nested_rwalks=48 --nlive_batch=200 --nlive_init 500"
-fit=$fit"--nested_dlogz_init=0.01 --nested_posterior_thresh=0.03"
+fit=$fit" --nested_dlogz_init=0.01 --nested_posterior_thresh=0.03"
 
 
 mkdir -p output/psb_results
