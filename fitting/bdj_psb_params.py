@@ -292,6 +292,7 @@ if __name__ == '__main__':
     run_params = vars(args)
 
     # override some dynesty defaults
+    run_params["nested_rwalks"] = 48
     run_params['nested_weight_kwargs'] = {'pfrac': 1.0}
     run_params['nested_maxcall'] = 7500000
     run_params['nested_maxcall_init'] = 7500000

@@ -30,7 +30,7 @@ model="--continuum_order=12 --add_neb --free_neb_met --marginalize_neb"
 model=$model" --nbins_sfh=8 --jitter_model --mixture_model"
 
 # fitting flags
-fit="--dynesty --nested_method=rwalk --nested_rwalks=48 --nlive_batch=200 --nlive_init 500"
+fit="--dynesty --nested_method=rwalk --nlive_batch=200 --nlive_init 500"
 fit=$fit" --nested_dlogz_init=0.01 --nested_posterior_thresh=0.03"
 
 
