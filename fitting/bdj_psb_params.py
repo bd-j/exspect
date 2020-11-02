@@ -156,10 +156,11 @@ def build_model(zred=0.073, nbins_sfh=8,
                                                              df=np.full(nbins_sfh-1, 2))
 
     # add redshift scaling to agebins, such that t_max = t_univ
-    def zred_to_agebins(zred=None, nbins_sfh=5, **extras):
-        tuniv = cosmo.age(zred).value[0]*1e9
+    def zred_to_agebins(zred=None, nbins_sfh=None, **extras):
+        tuniv = np.squeeze(cosmo.age(zred).to("yr").value)
+        ncomp = np.squeeze(nbins_sfh)
         tbinmax = (tuniv*0.9)
-        agelims = [0.0, 7.4772] + np.linspace(8.0, np.log10(tbinmax), nbins_sfh-2).tolist() + [np.log10(tuniv)]
+        agelims = [0.0, 7.4772] + np.linspace(8.0, np.log10(tbinmax), ncomp-2).tolist() + [np.log10(tuniv)]
         agebins = np.array([agelims[:-1], agelims[1:]])
         return agebins.T
 
