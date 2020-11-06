@@ -29,6 +29,7 @@ python compare_mock_specphot.py  --prior_samples=$nprior --n_seds=0 \
                                  --specphot_file=${rdir}/mock_parametric_specphot.h5
 
 # nbands figure
+echo "Nbands"
 # filtersets=(oneband twoband optical opt_nir uv_to_nir uv_to_mir full)
 filtersets=(oneband full)
 #for f in ${filtersets[@]}; do echo $f; done
@@ -39,15 +40,19 @@ for f in ${filtersets[@]};
 done
 
 # GCs
+echo "GC example"
 python gc_dash.py --n_seds=$nseds --fignum=ggc1 --results_file=$rdir/ggc1.h5
 
 # GC comparison
+echo "GC comparison"
 python gc_compare.py --fignum=ggc_all
 
 # Photo-z
+echo "Photo - z"
 python show_gnz11.py --prior_samples=$nprior --n_seds=$nseds --fignum=gnz11 \
                      --results_file=${rdir}/photoz_gnz11.h5
 
 # SDSS PSB
+echo "PSB"
 python plot_psb_sdss.py --prior_samples=$nprior --n_seds=$nseds --fignum=sdss_psb \
-                        --results_file=${rdir}/psb_results/psb_sdss_mcmc.h5
+                        --results_file=${rdir}/psb_results/psb_92942_20Nov02-11.49_result.h5

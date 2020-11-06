@@ -139,6 +139,16 @@ class Plotter(FigureMaker):
 
 if __name__ == "__main__":
 
+
+    parser = ArgumentParser()
+    #parser.add_argument("--results_file", type=str, default="")
+    parser.add_argument("--fignum", type=str, default="illustris1")
+    parser.add_argument("--figext", type=str, default="png")
+    #parser.add_argument("--prior_samples", type=int, default=1000)
+    #parser.add_argument("--n_seds", type=int, default=0)
+    args = parser.parse_args()
+
+
     odir = "../fitting/output/illustris"
     files = ["illustris_sfh2_snr100_nebFalse_mcmc.h5",
              "illustris_nonpar_sfh2_nbins14_slice_snr100_noiseTrue_mcmc.h5",
@@ -220,6 +230,10 @@ if __name__ == "__main__":
     fig.legend(artists, legends, loc='upper right', bbox_to_anchor=(0.96, 0.94),
                frameon=True, fontsize=12, ncol=4)
 
-    fig.savefig("paperfigures/illustris1.png", dpi=400)
-
-    pl.show()
+    # --- Saving ---
+    # --------------
+    if args.fignum:
+        fig.savefig("paperfigures/{}.{}".format(args.fignum, args.figext), dpi=400)
+    else:
+        pl.ion()
+        pl.show()

@@ -57,7 +57,7 @@ def build_obs(err_floor=0.05, **kwargs):
 
     # --- convert to flux
     # use taylor expansion for uncertainties
-    flux = 10**(-0.5*np.array(mags))
+    flux = 10**(-0.4*np.array(mags))
     unc = flux*np.array(magunc)/1.086
     unc = np.clip(unc, flux*err_floor, np.inf)
 

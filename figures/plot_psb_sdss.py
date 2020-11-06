@@ -127,8 +127,6 @@ class Plotter(FigureMaker):
         #self.paxes = np.array([self.fig.add_subplot(gs[int(i/3)*2 + 7, 3 + (i % 3)]) for i in range(npar)])
         self.paxes = np.array([self.fig.add_subplot(gs[int(i/3)*2 + 7, 3 + (i % 3)]) for i in range(npar)])
 
-        pl.show()
-
     def plot_sfh(self, sfhax):
         """ Plot the SFH
         """
