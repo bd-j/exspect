@@ -55,4 +55,4 @@ python show_gnz11.py --prior_samples=$nprior --n_seds=$nseds --fignum=gnz11 \
 # SDSS PSB
 echo "PSB"
 python plot_psb_sdss.py --prior_samples=$nprior --n_seds=$nseds --fignum=sdss_psb \
-                        --results_file=${rdir}/psb_results/psb_92942_20Nov02-11.49_result.h5
+                        --results_file=${rdir}/psb_results/psb_92942_20Nov06-16.08_result.h5
