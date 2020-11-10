@@ -149,7 +149,7 @@ class Plotter(FigureMaker):
         zbest = self.chain["zred"][self.ind_best][0]
         zax.set_xlabel("Redshift")
         zax.set_ylabel("Probability")
-        zax.axvline(zbest, label=r"MAP redshift", linestyle="dashed", color=self.pkwargs["color"])
+        #zax.axvline(zbest, label=r"MAP redshift", linestyle="dashed", color=self.pkwargs["color"])
         zax.axvline(11.09, label=r"Grism redshift (O16; $z=11.09$)", **self.tkwargs)
         zax.legend(loc=(0.08, 0.2), fontsize=10)
 

@@ -182,7 +182,7 @@ def build_obs(**kwargs):
     obs['wavelength'] = None  # No spectrum
     obs['filters'] = load_filters(filterset)
 
-    # From ?
+    # From Oesch 16
     obs['maggies'] = 1e-9/3631 * np.array([7., 2., 5., 3., 17., -7, 11., 64., 152., 137., 139., 144.])
     obs['maggies_unc'] = 1e-9/3631 * np.array([9., 7., 10., 7., 11., 9., 8., 13., 10., 67., 21., 27])
     obs['phot_wave'] = np.array([f.wave_effective for f in obs['filters']])

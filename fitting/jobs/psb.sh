@@ -35,5 +35,5 @@ fit=$fit" --nested_dlogz_init=0.01 --nested_posterior_thresh=0.03"
 
 
 mkdir -p output/psb_results
-python bdj_psb_params.py $fit $model $data \
-                         --outfile=output/psb_results/psb_$objnum
+python psb_params.py $fit $model $data \
+                     --outfile=output/psb_results/psb_$objnum
