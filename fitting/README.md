@@ -1,9 +1,9 @@
 # Scripts for conducting fits
 
 The parameter files here can be run, with suitable options, to perform
-inferences with Prospector as presented in \paper\.
+inferences with Prospector as presented in |paper|.
 
-Detailed descriptions of the options provided are given in the SLURM submission
+The actual fits for the paper where run using the SLURM submission
 scripts in the `jobs` directory.
 
 ## Section 3: Mocks

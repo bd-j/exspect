@@ -1,10 +1,10 @@
 # Exspect
 
-Example code for fits and plots, as presented in \paper\
+Example code for fits and plots, as presented in |paper|
 
 ## Installation
 
-If you have Anaconda installed, follow the instructions in `install_conda.sh` to install the relevant codes into an environment named `prox`
+If you have Anaconda installed, follow the steps in `install_conda.sh` to install the relevant codes into an environment named `prox`
 
 ## Running Fits
 

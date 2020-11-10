@@ -21,31 +21,28 @@ export F90FLAGS=-fPIC
 ```sh
 cd $MYSCRATCH
 git clone git@github.com:bd-j/exspect.git
-git clone git@github.com:cconroy20/fsps.git
-git clone git@github.com:dfm/python-fsps.git
-git clone git@github.com:bd-j/sedpy.git
-git clone git@github.com:bd-j/prospector.git
-
 cd exspect
 conda env create -f environment.yml
-source activate prox
+conda activate prox
+cd ..
 
-cd ../fsps/src
+# Install FSPS from source
+git clone git@github.com:cconroy20/fsps
+export SPS_HOME="$PWD/fsps"
+cd $SPS_HOME/src
 make clean
 make all
 
-cd ../../python-fsps
-python setup.py install
+# Install other repos from source
+repos=( dfm/python-fsps bd-j/sedpy bd-j/prospector )
+for r in "${repos[@]}"; do
+    git clone git@github.com:$r
+    cd ${r##*/}
+    python setup.py install
+    cd ..
+done
 
-cd ../sedpy
-python setup.py install
-
-cd ../prospector
-python setup.py install
-
-cd ../exspect
-git pull
-python setup.py install
+echo "Add 'export SPS_HOME=${SPS_HOME}' to your .bashrc"
 ```
 
 ## Run code
