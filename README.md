@@ -8,8 +8,8 @@ If you have Anaconda installed, follow the steps in `install_conda.sh` to instal
 
 ## Running Fits
 
-The `fitting` directory contains parameter files that can be used to conduct fits, as described in the README.  These fits will produce date stamped files in the `fitting/output/stamped/` directory.
+The `fitting` directory contains parameter files that can be used to conduct fits, as described in the README.  These fits will produce date stamped files in the `fitting/output/` directory.
 
 ## Making plots
 
-First, soft-link the date stamped filenames to more generic filenames.  Then, run `make_figures.sh` in the `figures/` directory, which will produce output in the `figures/paperfigures/` directory, using the scripts in the `figures/` directory
+First, soft-link the date stamped filenames to more generic filenames.  Then, run `make_figures.sh` in the `figures/` directory, which will produce output in the `figures/paperfigures/` directory, using the scripts in the `figures/` directory.

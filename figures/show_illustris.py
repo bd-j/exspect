@@ -139,7 +139,7 @@ class Plotter(FigureMaker):
 
 if __name__ == "__main__":
 
-
+    from argparse import ArgumentParser
     parser = ArgumentParser()
     #parser.add_argument("--results_file", type=str, default="")
     parser.add_argument("--fignum", type=str, default="illustris1")
@@ -147,7 +147,6 @@ if __name__ == "__main__":
     #parser.add_argument("--prior_samples", type=int, default=1000)
     #parser.add_argument("--n_seds", type=int, default=0)
     args = parser.parse_args()
-
 
     odir = "../fitting/output/illustris"
     files = ["illustris_sfh2_snr100_nebFalse_mcmc.h5",

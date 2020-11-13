@@ -133,7 +133,7 @@ class Plotter(FigureMaker):
         caxes[10].set_xlim(-5, 0.0)
         caxes[11].set_xlim(5, 120)
 
-    def plot_post(self, caxes, lfactor=1.75):
+    def plot_post(self, caxes, lfactor=2.0):
         truths = self.convert(dict_to_struct(self.obs['mock_params']))
 
         for i, p in enumerate(self.show):
@@ -147,6 +147,7 @@ class Plotter(FigureMaker):
         peak = np.ones(len(self.show)) * 0.96
         peak[self.show.index("duste_gamma")] = lfactor
         peak[self.show.index("agn_tau")] = lfactor
+        peak[self.show.index("ssfr")] = 1.1
         self.set_lims(caxes)
         if self.prior_samples > 0:
             spans = [ax.get_xlim() for ax in caxes.flat]

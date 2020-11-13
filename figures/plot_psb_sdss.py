@@ -13,7 +13,7 @@ from matplotlib.patches import Patch
 from matplotlib.lines import Line2D
 
 import prospect.io.read_results as reader
-from prospect.plotting import FigureMaker, chain_to_struct, boxplot
+from prospect.plotting import FigureMaker, chain_to_struct, boxplot, sample_prior
 from prospect.plotting.corner import marginal, quantile, _quantile
 from prospect.plotting.sed import convolve_spec, to_nufnu
 from prospect.plotting.sfh import nonpar_recent_sfr, nonpar_mwa, ratios_to_sfrs, sfh_quantiles
@@ -37,6 +37,16 @@ def construct_sfh_measure(chain, agebins):
     sfr = nonpar_recent_sfr(lm, sr, agebins, sfr_period=0.1)
     ssfr = np.log10(sfr) - logmass
     return [age, np.log10(sfr)], ["mwa", "logsfr"]
+
+
+def params_to_sfh(model, samples, ntime=50):
+    agebins = model.params["agebins"]
+    sfh_samples = np.array([ratios_to_sfrs(s["logmass"], s["logsfr_ratios"], agebins=agebins)
+                            for s in samples])
+    tlook = 10**agebins / 1e9
+    tvec = np.exp(np.linspace(np.log(max(tlook.min(), 0.01)), np.log(tlook.max()), ntime))
+
+    return tlook, tvec, sfh_samples
 
 
 class Plotter(FigureMaker):
@@ -448,6 +458,26 @@ class Plotter(FigureMaker):
         # legend
         axi.legend(prop={'size': 4.5}, loc='upper left')
 
+    def show_sfh_prior(self, ax, nsample=10000, renorm=True):
+
+        samples, _ = sample_prior(self.model, nsample=nsample)
+        priors = chain_to_struct(samples, self.model)
+        tlook, tvec, sfh_samples = params_to_sfh(self.model, priors)
+
+        # renormalize to SFR in most recent bin, to get just the *shape*
+        if renorm:
+            pbest = self.chain[self.ind_best]
+            sfh_best = ratios_to_sfrs(pbest["logmass"], pbest["logsfr_ratios"],
+                                      agebins=self.model.params["agebins"])
+            sfh_samples = sfh_samples / (sfh_samples[:, :1]) * sfh_best[0]
+
+        # -- shrink the bins to get a prettier SFH ---
+        tlook *= np.array([1.05, 0.95])
+        tlook = np.tile(tlook, (len(priors), 1, 1))
+        sq = sfh_quantiles(tvec, tlook, sfh_samples, weights=None, q=self.qu)
+
+        ax.fill_between(tvec, sq[0, :], sq[2, :], zorder=0, alpha=0.4, **self.rkwargs)
+
     def extra_art(self):
         self.skwargs = dict(color=colorcycle[1], alpha=0.65)
         self.akwargs = dict(color=colorcycle[3], alpha=0.65)
@@ -479,6 +509,7 @@ if __name__ == "__main__":
 
     plotter = Plotter(nufnu=True, microns=True, **vars(args))
     plotter.plot_all()
+    #plotter.show_sfh_prior(plotter.sfhax)
 
     # --- Saving ---
     # --------------
