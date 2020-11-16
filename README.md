@@ -8,7 +8,7 @@ If you have Anaconda installed, follow the steps in `install_conda.sh` to instal
 
 ## Running Fits
 
-The `fitting` directory contains parameter files that can be used to conduct fits, as described in the README.  These fits will produce date stamped files in the `fitting/output/` directory.
+The `fitting` directory contains parameter files that can be used to conduct fits, as described in the README.  These fits will produce date stamped files including posterior samples/chains in the `fitting/output/` directory.
 
 ## Making plots
 
