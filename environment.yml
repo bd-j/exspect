@@ -8,22 +8,22 @@ dependencies:
   - pycodestyle
   - ipython
   # scientific computing
-  - numpy
-  - scipy
-  - matplotlib
-  - h5py
+  - numpy=1.17.2
+  - scipy=1.3.1
+  - matplotlib=3.1.1
+  - h5py=2.10.0
   # inference
-  - corner
-  - emcee
-  - dynesty
+  - corner=2.0.1
+  - emcee=2.2.1
+  - dynesty=1.0.0
   # astro
-  - astropy
+  - astropy=3.2.1
 
 # --- via setup.py ---
-# sedpy
-# fsps
-# prospector
-# exspect
+# sedpy (0.1.0; 1a20c81)
+# fsps (3.1; d19513ef8)
+# prospector (0.4.0; c954e2a43)
+# exspect (05b775b4)
 
 # -- optional ---
 # mpi4py

@@ -1,10 +1,10 @@
 # Exspect
 
-Example code for fits and plots, as presented in |paper|
+Example code for fits and plots with [prospector](https://prospect.readthedocs.io/en/latest/), as presented in |paper|
 
 ## Installation
 
-If you have Anaconda installed, follow the steps in `install_conda.sh` to install the relevant codes into an environment named `prox`
+If you have Anaconda installed, follow the steps in `conda_install.sh` to install the relevant codes into an environment named `prox`.  The `environment.yml` files gives the code versions used to generate fits and plots.
 
 ## Running Fits
 

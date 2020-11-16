@@ -45,13 +45,13 @@ fit="--dynesty --nested_method=rwalk"
 model="--continuum_order 0  --nbins_sfh 14"
 python illustris.py $fit $model $data \
                     $mock $sfh --zred=$zred \
-                    --outfile=output/illustris${igal}_nonparametric
+                    --outfile=output/illustris_gal${igal}_nonpar
 
 # parametric
 model="--continuum_order 0  --parametric_sfh"
 python illustris.py $fit $model $data \
                     $mock $sfh --zred=0.01 \
-                    --outfile=output/illustris${igal}_parametric
+                    --outfile=output/illustris_gal${igal}_par
 ```
 
 ### S3.3: Inference as a function of number of bands
