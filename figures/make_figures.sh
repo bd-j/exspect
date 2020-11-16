@@ -38,13 +38,18 @@ python show_illustris.py --fignum=illustris1
 echo "Nbands"
 filtersets=(oneband twoband optical opt_nir uv_to_nir uv_to_mir full)
 #filtersets=(oneband full)
-#for f in ${filtersets[@]}; do echo $f; done
-for f in ${filtersets[@]};
-  do
-    echo $f
+
+for ((i = 0; i < ${#filtersets[@]}; ++i)); do
+    # bash arrays are 0-indexed
+    idx=$(( $i + 1 ));
+    f=${filtersets[$i]};
+    echo "$f,$idx"
     python show_nbands.py --prior_samples=$nprior --n_seds=$nseds \
-                          --fignum=nband_${f} --results_file=$rdir/nband_fit_$f.h5
+                          --fignum=nband_${f} --results_file=$rdir/nband_fit_$f.h5 \
+                          #--adjust_maxw
+    cp paperfigures/nband_${f}.png paperfigures/nband${idx}.png
 done
+
 
 # GCs
 echo "GC example"

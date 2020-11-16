@@ -17,6 +17,8 @@ from prospect.io.write_results import chain_to_struct
 from prospect.plotting.corner import _quantile
 from defaults import plot_defaults, pretty
 
+from matplotlib.pyplot import FixedLocator
+
 lmap = {"tage": "age",
         "logzsol": "feh",
         "av": "av"}
@@ -135,8 +137,16 @@ class Plotter:
                 xx = np.linspace(lo, hi, 10)
                 ax.plot(xx, xx, linestyle="--", color="k")
 
+        # limits and ticks
         [ax.set_ylim(-2.5, 0.3) for ax in axes[0, :]]
+        zloc = FixedLocator([-2, -1, 0])
+        [ax.yaxis.set_major_locator(zloc) for ax in axes[0,:]]
+        [ax.xaxis.set_major_locator(zloc) for ax in axes[0,:]]
         [ax.set_ylim(3, 17) for ax in axes[1, :]]
+
+        dloc = FixedLocator([0, 1, 2])
+        axes[-1, 0].xaxis.set_major_locator(dloc)
+        axes[-1, 0].yaxis.set_major_locator(dloc)
 
         axes.flat[-1].set_visible(False)
 

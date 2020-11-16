@@ -169,6 +169,7 @@ class Plotter(FigureMaker):
         [ax.set_xticklabels('') for ax in [sax, rax]]
 
         # --- annotate ---
+        sax.text(0.1, 0.8, self.obs["cluster"], transform=sax.transAxes, fontsize=14)
         rax.text(0.7, 0.8, r'Residuals', transform=rax.transAxes)
         lax.text(0.58, 0.60, r"Calibration vector:"+"\n"+r"$F_\nu({\rm model}) \, = \, \mathcal{C}(\lambda) \cdot F_\nu({\rm intrinsic})$",
                  transform=lax.transAxes)

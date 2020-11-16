@@ -89,7 +89,7 @@ class Plotter(FigureMaker):
             params[c] = np.squeeze(sfh[i])
         return params
 
-    def plot_all(self):
+    def plot_all(self, adjust_maxw=False):
         self.make_axes()
         self.styles()
         self.lkwargs["linewidth"] = 2
@@ -98,7 +98,7 @@ class Plotter(FigureMaker):
         self.make_art()
 
         self.plot_post(self.caxes)
-        self.plot_sed(self.sax)
+        self.plot_sed(self.sax, adjust_maxw=adjust_maxw)
         self.make_legend(self.sax)
 
     def make_axes(self):
@@ -156,14 +156,16 @@ class Plotter(FigureMaker):
         # --- prettify ---
         [ax.set_yticklabels([]) for ax in caxes.flat]
 
-    def plot_sed(self, sax, nufnu=True, microns=True):
+    def plot_sed(self, sax, nufnu=True, microns=True, adjust_maxw=False):
         """ Plot the SED: data and posterior predictions
         """
         wc = 10**(4 * nufnu)
 
         # --- Photometric data ---
         owave, ophot, ounc = self.obs["phot_wave"], self.obs["maggies"], self.obs["maggies_unc"]
-        maxw = np.max(owave > 10e4) * 520e4 + np.max(owave < 10e4) * 30e4
+        maxw = 520e4
+        if adjust_maxw:
+            maxw = np.max(owave > 10e4) * 520e4 + np.max(owave < 10e4) * 30e4
         minw = 900
         if nufnu:
             _, ophot = to_nufnu(owave, ophot, microns=microns)
@@ -223,6 +225,7 @@ if __name__ == "__main__":
     parser.add_argument("--figext", type=str, default="png")
     parser.add_argument("--prior_samples", type=int, default=int(1e5))
     parser.add_argument("--n_seds", type=int, default=0)
+    parser.add_argument("--adjust_maxw", action="store_true")
     args = parser.parse_args()
 
     # --- Axes ---
@@ -233,7 +236,7 @@ if __name__ == "__main__":
     rcParams.update({'ytick.labelsize': 12})
 
     plotter = Plotter(nufnu=True, **vars(args))
-    plotter.plot_all()
+    plotter.plot_all(adjust_maxw=args.adjust_maxw)
 
     # --- Saving ---
     # --------------

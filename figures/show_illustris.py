@@ -148,11 +148,11 @@ if __name__ == "__main__":
     #parser.add_argument("--n_seds", type=int, default=0)
     args = parser.parse_args()
 
-    odir = "../fitting/output/illustris"
-    files = ["illustris_sfh2_snr100_nebFalse_mcmc.h5",
-             "illustris_nonpar_sfh2_nbins14_slice_snr100_noiseTrue_mcmc.h5",
-             "illustris_sfh2orig_snr100_nebFalse_mcmc.h5",
-             "illustris_nonpar_sfh2orig_nbins14_slice_snr100_noiseTrue_mcmc.h5"]
+    odir = "../fitting/output/"
+    files = ["illustris_gal04_par.h5",
+             "illustris_gal04_nonpar.h5",
+             "illustris_gal02_par.h5",
+             "illustris_gal02_nonpar.h5"]
     files = [os.path.join(odir, f) for f in files]
 
     # instantiate the plotters
