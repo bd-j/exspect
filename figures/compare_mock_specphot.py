@@ -18,6 +18,7 @@ import numpy as np
 import matplotlib.pyplot as pl
 from matplotlib import rcParams
 import matplotlib.ticker as ticker
+from matplotlib.lines import Line2D
 
 from prospect.plotting import FigureMaker, dict_to_struct
 from prospect.plotting.corner import marginal, scatter, get_spans, corner, prettify_axes
@@ -75,6 +76,9 @@ class Plotter(FigureMaker):
         if self.prior_samples > 0:
             self.show_priors(np.diag(paxes), spans, smooth=0.05, **self.rkwargs)
 
+        self.art["truth"] = Line2D([], [], linestyle="", marker="o",
+                                   color=self.tkwargs["mfc"], markeredgecolor="k")
+
     def convert(self, chain):
         """compute quantities from a structured chain (or dictionary)
         """
@@ -111,7 +115,7 @@ class Plotter(FigureMaker):
 
             pspec = self.spec_samples * renorm
             qq = np.percentile(pspec, [16, 50, 84], axis=0)
-            sax.plot(wave, self.spec_best * renorm, **self.skwargs)
+            sax.plot(wave, self.spec_best * renorm, **self.pkwargs)
 
         m = self.obs["mask"]
         # data
@@ -176,7 +180,6 @@ if __name__ == "__main__":
     art = [p.art["posterior"] for p in plotters]
     plotters[-1].make_legend(fig, eleg=leg, eart=art, fontsize=12)
     fig.subplots_adjust(wspace=0.08, hspace=0.08)
-
 
     # --- Saving ----
     # ---------------
