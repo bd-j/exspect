@@ -15,7 +15,7 @@ from matplotlib import gridspec, rcParams
 from matplotlib import ticker
 
 from prospect.plotting import FigureMaker, chain_to_struct, dict_to_struct
-from prospect.plotting import boxplot
+from prospect.plotting.utils import boxplot
 from prospect.plotting.corner import marginal
 from prospect.plotting.sed import to_nufnu, convolve_spec
 from prospect.plotting.sfh import nonpar_recent_sfr, nonpar_mwa

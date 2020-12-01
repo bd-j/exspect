@@ -14,7 +14,8 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 from matplotlib import ticker
 
-from prospect.plotting import FigureMaker, chain_to_struct, boxplot, sample_posterior
+from prospect.plotting import FigureMaker, chain_to_struct
+from prospect.plotting.utils import boxplot, sample_posterior
 from prospect.plotting.corner import allcorner, marginal, scatter, get_spans
 from prospect.plotting.sed import to_nufnu, convolve_spec
 from prospect.plotting.sfh import ratios_to_sfrs, sfh_quantiles

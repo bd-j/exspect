@@ -13,7 +13,8 @@ from matplotlib.patches import Patch
 from matplotlib.lines import Line2D
 
 import prospect.io.read_results as reader
-from prospect.plotting import FigureMaker, chain_to_struct, boxplot, sample_prior
+from prospect.plotting import FigureMaker, chain_to_struct
+from prospect.plotting.utils import boxplot, sample_prior
 from prospect.plotting.corner import marginal, quantile, _quantile
 from prospect.plotting.sed import convolve_spec, to_nufnu
 from prospect.plotting.sfh import nonpar_recent_sfr, nonpar_mwa, ratios_to_sfrs, sfh_quantiles
@@ -114,7 +115,9 @@ class Plotter(FigureMaker):
         self.plot_sed(self.sedax, self.resax,
                       nufnu=self.nufnu, microns=self.microns)
         self.plot_spec(self.specax, self.sresax, calax=self.calax,
-                       nufnu=self.nufnu, microns=False)
+                       nufnu=self.nufnu, microns=True)
+        xlim = self.sedax.get_xlim()
+        self.specax.set_xlim(*xlim)
         self.restframe_axis(self.specax, microns=False, fontsize=fs, ticksize=ticksize)
         self.make_inset(self.specax, microns=False)
 
@@ -417,12 +420,12 @@ class Plotter(FigureMaker):
 
         return spec_bfit, spec_nomarg, spec_nolines
 
-    def make_inset(self, ax, minw=6500, maxw=6600,
-                   label=r'H$\alpha$ + [NII]', microns=False):
+    def make_inset(self, ax, minw=6500, maxw=6600, microns=False,
+                   inset=dict(width="30%", height="37%", loc="lower right"),
+                   label=r'H$\alpha$ + [NII]'):
         # H-alpha, NII inset
         # create inset axis
-        axi = inset_axes(ax, width="25%", height="35%", loc="lower right",
-                         borderpad=2)
+        axi = inset_axes(ax, borderpad=2, **inset)
 
         if "zred" in self.model.free_params:
             zred = self.model.params["zred"]

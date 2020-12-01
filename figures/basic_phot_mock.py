@@ -16,7 +16,7 @@ from matplotlib.patches import Patch
 from matplotlib import rcParams, gridspec
 
 from prospect.plotting import FigureMaker, chain_to_struct, dict_to_struct
-from prospect.plotting import boxplot, get_simple_prior, sample_prior, sample_posterior
+from prospect.plotting.utils import boxplot, get_simple_prior, sample_prior, sample_posterior
 from prospect.plotting.corner import allcorner, marginal, get_spans, _quantile
 from prospect.plotting.sed import to_nufnu, convolve_spec
 
