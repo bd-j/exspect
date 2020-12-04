@@ -1,6 +1,6 @@
 # Exspect
 
-Example code for fits and plots with [prospector](https://prospect.readthedocs.io/en/latest/), as presented in |paper|
+Example code for fits and plots with [prospector](https://prospect.readthedocs.io/en/latest/), as presented in [2012.01426](https://arxiv.org/abs/2012.01426)
 
 ## Installation
 
