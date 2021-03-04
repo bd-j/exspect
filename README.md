@@ -4,7 +4,7 @@ Example code for fits and plots with [prospector](https://prospect.readthedocs.i
 
 ## Installation
 
-If you have Anaconda installed, follow the steps in `conda_install.sh` to install the relevant codes into an environment named `prox`.  The `environment.yml` files gives the code versions used to generate fits and plots.
+If you have Anaconda installed, follow the steps in `conda_install.sh` to install the relevant codes into an environment named `prox`.  The `environment_paper.yml` files gives the code versions used to generate fits and plots in the paper; `environment.yml` is a more modern build.
 
 ## Running Fits
 

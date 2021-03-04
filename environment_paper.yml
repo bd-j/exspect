@@ -1,0 +1,25 @@
+name: prox
+channels:
+  - conda-forge
+dependencies:
+  # infrastructure
+  - pip
+  - ipython
+  # scientific computing
+  - numpy=1.17.2
+  - scipy=1.3.1
+  - matplotlib=3.1.1
+  - h5py=2.10.0
+  # inference
+  - corner=2.0.1
+  - emcee=2.2.1
+  - dynesty=1.0.0
+  # astro
+  - astropy=3.2.1
+
+# --- from source ---
+# bd-j/sedpy (v0.1.0; 1a20c81)
+# cconroy20/fsps (v3.1; d19513ef8)
+# dfm/python-fsps (v0.3.0; a1edca9f8)
+# bd-j/prospector (0.4.0; c954e2a43)
+# bd-j/exspect (05b775b4)
