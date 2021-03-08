@@ -17,15 +17,7 @@ git clone git@github.com:bd-j/exspect.git
 cd exspect
 conda env create -f environment.yml
 conda activate prox
-cd ..
+python -m pip install .
 
-# Install other repos from source
-repos=( bd-j/prospector )
-for r in "${repos[@]}"; do
-    git clone git@github.com:$r
-    cd ${r##*/}
-    python setup.py install
-    cd ..
-done
 
 echo "Add 'export SPS_HOME=${SPS_HOME}' to your .bashrc"

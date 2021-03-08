@@ -19,8 +19,8 @@ dependencies:
   - pip:
     - astro-sedpy
     - fsps
+    - astro-prospector
 
 # --- from source ---
 # cconroy20/fsps
-# bd-j/prospector
 # bd-j/exspect

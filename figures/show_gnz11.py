@@ -124,8 +124,8 @@ class Plotter(FigureMaker):
 
         sax.legend(artists, legends, loc="upper left", fontsize=10)
         sax.set_xticklabels([])
-        #rax.set_xticks([0.4, 1.0, 2.0, 4.0])
-        #rax.xaxis.set_major_formatter(ticker.StrMethodFormatter("{x:0.1f}"))
+        rax.set_xticks([0.4, 1.0, 2.0, 4.0])
+        rax.xaxis.set_major_formatter(ticker.StrMethodFormatter("{x:0.1f}"))
         [ax.set_xlim(0.3, 5) for ax in [rax, sax]]
 
         rax.set_ylim(-2.8, 2.8)
