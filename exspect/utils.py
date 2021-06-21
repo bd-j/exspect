@@ -103,7 +103,7 @@ def build_mock(sps, model,
 # Helper Functions
 # ------------------
 
-def get_lsf(wave_obs, sigma_v, miles_fwhm_aa=2.54, zred=0.0, **extras):
+def get_lsf(wave_obs, sigma_v, speclib="miles", zred=0.0, **extras):
     """This method takes a spec file and returns the quadrature difference
     between the instrumental dispersion and the MILES dispersion, in km/s, as a
     function of wavelength
@@ -117,16 +117,28 @@ def get_lsf(wave_obs, sigma_v, miles_fwhm_aa=2.54, zred=0.0, **extras):
     # filter out some places where sdss reports zero dispersion
     good = sigma_v > 0
     wave_obs, sigma_v = wave_obs[good], sigma_v[good]
-    # Get the miles velocity resolution function at the corresponding
-    # *rest-frame* wavelength
     wave_rest = wave_obs / (1 + zred)
-    sigma_v_miles = lightspeed * miles_fwhm_aa / 2.355 / wave_rest
+
+    # Get the library velocity resolution function at the corresponding
+    # *rest-frame* wavelength
+    if speclib == "miles":
+        miles_fwhm_aa = 2.54
+        sigma_v_lib = lightspeed * miles_fwhm_aa / 2.355 / wave_rest
+        # Restrict to regions where MILES is used
+        good = (wave_rest > 3525.0) & (wave_rest < 7500)
+    elif speclib == "c3k_a":
+        R_c3k = 3000
+        sigma_v_lib = lightspeed / (R_c3k * 2.355)
+        # Restrict to regions where C3K is used
+        good = (wave_rest > 2750.0) & (wave_rest < 9100.0)
+    else:
+        sigma_v_lib = sigma_v
+        good = slice(None)
+        raise ValueError("speclib of type {} not supported".format(speclib))
 
     # Get the quadrature difference
     # (Zero and negative values are skipped by FSPS)
-    dsv = np.sqrt(np.clip(sigma_v**2 - sigma_v_miles**2, 0, np.inf))
-    # Restrict to regions where MILES is used
-    good = (wave_rest > 3525.0) & (wave_rest < 7500)
+    dsv = np.sqrt(np.clip(sigma_v**2 - sigma_v_lib**2, 0, np.inf))
 
     # return the broadening of the rest-frame library spectra required to match
     # the obserrved frame instrumental lsf
@@ -154,8 +166,8 @@ def set_sdss_lsf(ssp, zred=0.0, sdss_filename='', **extras):
     wave_obs = 10**sdss_spec['loglam']  # observed frame wavelength
     # instrumental resolution as velocity dispersion
     sigma_v = np.log(10) * lightspeed * 1e-4 * sdss_spec['wdisp']
-    wave, delta_v = get_lsf(wave_obs, sigma_v, zred=zred, **extras)
-    assert ssp.libraries[1].decode("utf-8") == 'miles', "Please change FSPS to the MILES libraries."
+    speclib = ssp.libraries[1].decode("utf-8")
+    wave, delta_v = get_lsf(wave_obs, sigma_v, speclib=speclib, zred=zred, **extras)
     ssp.params['smooth_lsf'] = True
     ssp.set_lsf(wave, delta_v)
 
@@ -168,8 +180,8 @@ def set_ggc_lsf(ssp, zred=0.0, wave_lo=3500, wave_hi=7500, **extras):
     wave_obs = np.arange(wave_lo, wave_hi, 1.0)
     fwhm = ggc_lsf(wave_obs)  # angstroms
     sigma_v = lightspeed * fwhm / 2.355 / wave_obs  # km/s
-    wave, delta_v = get_lsf(wave_obs, sigma_v, zred=zred, **extras)
-    ssp.libraries[1] == 'miles', "Please change FSPS to the MILES libraries."
+    speclib = ssp.libraries[1].decode("utf-8")
+    wave, delta_v = get_lsf(wave_obs, sigma_v, speclib=speclib, zred=zred, **extras)
     ssp.params['smooth_lsf'] = True
     ssp.set_lsf(wave, delta_v)
 

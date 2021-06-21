@@ -140,6 +140,8 @@ def build_model(zred=0.073, nbins_sfh=8,
 
     # --- input basic continuity SFH ---
     model_params = TemplateLibrary["continuity_sfh"]
+    model_params["use_wr_spectra"] = dict(N=1, isfree=False, init=0)
+    model_params["logt_wmb_hot"] = dict(N=1, isfree=False, init=np.log10(5e4))
 
     #  --- fit for redshift ---
     # use catalog value as center of the prior
@@ -198,7 +200,7 @@ def build_model(zred=0.073, nbins_sfh=8,
 
     # --- spectral smoothing ---
     model_params.update(TemplateLibrary['spectral_smoothing'])
-    model_params["sigma_smooth"]["prior"] = priors.TopHat(mini=40.0, maxi=400.0)
+    model_params["sigma_smooth"]["prior"] = priors.TopHat(mini=10.0, maxi=400.0)
 
     # --- Nebular emission ---
     if add_neb:
@@ -261,7 +263,9 @@ def build_model(zred=0.073, nbins_sfh=8,
 # --------------
 def build_sps(zcontinuous=1, compute_vega_mags=False, **extras):
     sps = FastStepBasis(zcontinuous=zcontinuous,
-                        compute_vega_mags=compute_vega_mags)  # special to remove redshifting issue
+                        compute_vega_mags=compute_vega_mags)
+    #from exspect.utils import set_sdss_lsf
+    # set_sdss_lsf(sps.ssp, **extras)
     return sps
 
 
@@ -316,6 +320,7 @@ if __name__ == '__main__':
 
     writer.write_hdf5(hfile, run_params, model, obs,
                       output["sampling"][0], output["optimization"][0],
+                      sps=sps,
                       tsample=output["sampling"][1],
                       toptimize=output["optimization"][1])
 
