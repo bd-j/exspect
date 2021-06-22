@@ -28,6 +28,8 @@ parser.add_argument('--nbins_sfh', type=int, default=8,
                     help="Number of bins in the non-parameteric SFH")
 parser.add_argument('--continuum_order', type=int, default=12,
                     help="If set, fit continuum.")
+parser.add_argument('--smooth_instrument', action="store_true",
+                    help="If set, smooth the SSPs to the instrumetnal resolution")
 # Noise model
 parser.add_argument('--jitter_model', action="store_true",
                     help="If set, add a jitter term.")
@@ -84,6 +86,7 @@ def build_obs(err_floor=0.05, **kwargs):
     spec = dat['flux']
     spec_err = 1 / np.sqrt(dat['ivar'])
     wave_obs = 10**dat['loglam']
+    instrumental_sigma_v = np.log(10) * 2.998e5 * 1e-4 * dat["wdisp"]
 
     # convert to maggies
     # spectra are 10**-17 erg s-1 cm-2 Angstrom-1
@@ -94,16 +97,21 @@ def build_obs(err_floor=0.05, **kwargs):
     # create spectral mask
     # approximate cut-off for MILES library at 7500 A rest-frame, using SDSS redshift,
     # also mask Sodium D absorption
+    # also mask Ca H & K absorption
     wave_rest = wave_obs / (1+obs['redshift'])
-    mask = (spec_err != 0) & \
-           (spec != 0) & \
-           (wave_rest < 7500) & \
-           (np.abs(wave_rest-5892.9) > 25)
+    mask = ((spec_err != 0) &
+            (spec != 0) &
+            (wave_rest < 7500) &
+            (np.abs(wave_rest-5892.9) > 25) &
+            (np.abs(wave_rest-3935.0) > 10) &
+            (np.abs(wave_rest-3969.0) > 20)
+            )
 
     obs['wavelength'] = wave_obs[mask]
     obs['spectrum'] = spec[mask]
     obs['unc'] = spec_err[mask]
     obs['mask'] = np.ones(mask.sum(), dtype=bool)
+    obs["sigma_v"] = instrumental_sigma_v[mask]
 
     # plot SED to ensure everything is on the same scale
     if False:
@@ -140,8 +148,7 @@ def build_model(zred=0.073, nbins_sfh=8,
 
     # --- input basic continuity SFH ---
     model_params = TemplateLibrary["continuity_sfh"]
-    model_params["use_wr_spectra"] = dict(N=1, isfree=False, init=0)
-    model_params["logt_wmb_hot"] = dict(N=1, isfree=False, init=np.log10(5e4))
+    model_params["logmass"]["prior"] = priors.TopHat(mini=9, maxi=12)
 
     #  --- fit for redshift ---
     # use catalog value as center of the prior
@@ -158,6 +165,11 @@ def build_model(zred=0.073, nbins_sfh=8,
     model_params['logsfr_ratios']['prior'] = priors.StudentT(mean=np.full(nbins_sfh-1, 0.0),
                                                              scale=np.full(nbins_sfh-1, 0.3),
                                                              df=np.full(nbins_sfh-1, 2))
+
+    # --- Use C3K everywhere ---
+    model_params["use_wr_spectra"] = dict(N=1, isfree=False, init=0)
+    model_params["logt_wmb_hot"] = dict(N=1, isfree=False, init=np.log10(5e4))
+
 
     # add redshift scaling to agebins, such that t_max = t_univ
     def zred_to_agebins(zred=None, nbins_sfh=None, **extras):
@@ -186,9 +198,9 @@ def build_model(zred=0.073, nbins_sfh=8,
 
     # --- complexify the dust ---
     model_params['dust_type']['init'] = 4
-    model_params["dust2"]["prior"] = priors.ClippedNormal(mini=0.0, maxi=4.0, mean=0.3, sigma=1)
+    model_params["dust2"]["prior"] = priors.ClippedNormal(mini=0.0, maxi=2.0, mean=0.3, sigma=1)
     model_params["dust_index"] = dict(N=1, isfree=True, init=0,
-                                      prior=priors.TopHat(mini=-1.0, maxi=0.4))
+                                      prior=priors.TopHat(mini=-1.0, maxi=0.2))
 
     def to_dust1(dust1_fraction=None, dust1=None, dust2=None, **extras):
         return dust1_fraction*dust2
@@ -200,7 +212,7 @@ def build_model(zred=0.073, nbins_sfh=8,
 
     # --- spectral smoothing ---
     model_params.update(TemplateLibrary['spectral_smoothing'])
-    model_params["sigma_smooth"]["prior"] = priors.TopHat(mini=10.0, maxi=400.0)
+    model_params["sigma_smooth"]["prior"] = priors.TopHat(mini=50.0, maxi=300.0)
 
     # --- Nebular emission ---
     if add_neb:
@@ -241,7 +253,7 @@ def build_model(zred=0.073, nbins_sfh=8,
     if mixture_model:
         model_params['nsigma_outlier_spec'] = dict(N=1, isfree=False, init=50.)
         model_params['f_outlier_spec'] = dict(N=1, isfree=True, init=0.01,
-                                              prior=priors.TopHat(mini=1e-5, maxi=0.5))
+                                              prior=priors.TopHat(mini=1e-5, maxi=0.1))
         model_params['nsigma_outlier_phot'] = dict(N=1, isfree=False, init=50.)
         model_params['f_outlier_phot'] = dict(N=1, isfree=False, init=0.0,
                                               prior=priors.TopHat(mini=0, maxi=0.5))
@@ -261,12 +273,67 @@ def build_model(zred=0.073, nbins_sfh=8,
 # --------------
 # SPS Object
 # --------------
-def build_sps(zcontinuous=1, compute_vega_mags=False, **extras):
+def build_sps(zcontinuous=1, compute_vega_mags=False,
+              zred=0.073, smooth_instrument=False, obs=None, **extras):
     sps = FastStepBasis(zcontinuous=zcontinuous,
                         compute_vega_mags=compute_vega_mags)
-    #from exspect.utils import set_sdss_lsf
-    # set_sdss_lsf(sps.ssp, **extras)
+    if (obs is not None) and (smooth_instrument):
+        #from exspect.utils import get_lsf
+        wave_obs = obs["wavelength"]
+        sigma_v = obs["sigma_v"]
+        speclib = sps.ssp.libraries[1].decode("utf-8")
+        wave, delta_v = get_lsf(wave_obs, sigma_v, speclib=speclib, zred=zred, **extras)
+        sps.ssp.params['smooth_lsf'] = True
+        sps.ssp.set_lsf(wave, delta_v)
+
     return sps
+
+
+def get_lsf(wave_obs, sigma_v, speclib="miles", zred=0.0, **extras):
+    """This method takes an instrimental resolution curve and returns the
+    quadrature difference between the instrumental dispersion and the library
+    dispersion, in km/s, as a function of restframe wavelength
+
+    :param wave_obs: ndarray
+        Observed frame wavelength (AA)
+
+    :param sigma_v: ndarray
+        Instrumental spectral resolution in terms of velocity dispersion (km/s)
+
+    :param speclib: string
+        The spectral library.  One of 'miles' or 'c3k_a', returned by
+        `sps.ssp.libraries[1]`
+    """
+    lightspeed = 2.998e5  # km/s
+    # filter out some places where sdss reports zero dispersion
+    good = sigma_v > 0
+    wave_obs, sigma_v = wave_obs[good], sigma_v[good]
+    wave_rest = wave_obs / (1 + zred)
+
+    # Get the library velocity resolution function at the corresponding
+    # *rest-frame* wavelength
+    if speclib == "miles":
+        miles_fwhm_aa = 2.54
+        sigma_v_lib = lightspeed * miles_fwhm_aa / 2.355 / wave_rest
+        # Restrict to regions where MILES is used
+        good = (wave_rest > 3525.0) & (wave_rest < 7500)
+    elif speclib == "c3k_a":
+        R_c3k = 3000
+        sigma_v_lib = lightspeed / (R_c3k * 2.355)
+        # Restrict to regions where C3K is used
+        good = (wave_rest > 2750.0) & (wave_rest < 9100.0)
+    else:
+        sigma_v_lib = sigma_v
+        good = slice(None)
+        raise ValueError("speclib of type {} not supported".format(speclib))
+
+    # Get the quadrature difference
+    # (Zero and negative values are skipped by FSPS)
+    dsv = np.sqrt(np.clip(sigma_v**2 - sigma_v_lib**2, 0, np.inf))
+
+    # return the broadening of the rest-frame library spectra required to match
+    # the observed frame instrumental lsf
+    return wave_rest[good], dsv[good]
 
 
 # -----------------
@@ -288,8 +355,10 @@ def build_noise(jitter_model=False, **extras):
 # Everything
 # ------------
 def build_all(**kwargs):
-    return (build_obs(**kwargs), build_model(**kwargs),
-            build_sps(**kwargs), build_noise(**kwargs))
+    obs = build_obs(**kwargs)
+    sps = build_sps(obs=obs, **kwargs)
+    return (obs, build_model(**kwargs),
+            sps, build_noise(**kwargs))
 
 
 if __name__ == '__main__':

@@ -65,7 +65,7 @@ class Plotter(FigureMaker):
         sfh, sfh_label = construct_sfh_measure(chain, self.agebins)
         niter = len(sfh[0])
         cols += sfh_label
-        dt = np.dtype([(c, np.float) for c in cols])
+        dt = np.dtype([(c, np.float64) for c in cols])
         params = np.zeros(niter, dtype=dt)
 
         for c in cols:
@@ -166,8 +166,8 @@ class Plotter(FigureMaker):
 
         sfhax.xaxis.set_minor_formatter(FormatStrFormatter('%2.5g'))
         sfhax.xaxis.set_major_formatter(FormatStrFormatter('%2.5g'))
-        sfhax.set_xscale('log', subsx=([2, 5]))
-        sfhax.set_yscale('log', subsy=([2, 5]))
+        sfhax.set_xscale('log', subs=([2, 5]))
+        sfhax.set_yscale('log', subs=([2, 5]))
         sfhax.tick_params('both', length=lw*3, width=lw, which='both', labelsize=12)
 
         #sfhax.xaxis.set_minor_formatter(FormatStrFormatter('%2.5g'))
